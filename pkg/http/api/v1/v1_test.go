@@ -17,6 +17,12 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
+
+		It("returns scanner.adapter.metadata Mime Type", func() {
+			response := doGetRequest("/api/v1/metadata")
+
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.metadata+json; version=1.0"))
+		})
 	})
 })
 

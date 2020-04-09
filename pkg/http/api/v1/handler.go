@@ -7,6 +7,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const (
+	scannerAdapterMetadataMimeType = "application/vnd.scanner.adapter.metadata+json; version=1.0"
+)
+
 func NewAPIHandler() http.Handler {
 	router := mux.NewRouter()
 
@@ -27,4 +31,5 @@ func logRequest(next http.Handler) http.Handler {
 }
 
 func metadata(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", scannerAdapterMetadataMimeType)
 }
