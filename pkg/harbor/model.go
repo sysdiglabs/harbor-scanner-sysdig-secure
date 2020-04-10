@@ -15,3 +15,28 @@ type ScannerAdapterMetadata struct {
 	Capabilities []ScannerCapability `json:"capabilities"`
 	Properties   map[string]string   `json:"properties,omitempty"`
 }
+
+type Registry struct {
+	Url           string `json:"url,omitempty"`
+	Authorization string `json:"authorization,omitempty"`
+}
+
+type Artifact struct {
+	Repository string `json:"repository,omitempty"`
+	Digest     string `json:"digest,omitempty"`
+	Tag        string `json:"tag,omitempty"`
+	MimeType   string `json:"mime_type,omitempty"`
+}
+
+type ScanRequest struct {
+	Registry *Registry `json:"registry"`
+	Artifact *Artifact `json:"artifact"`
+}
+
+type ModelError struct {
+	Message string `json:"message,omitempty"`
+}
+
+type ErrorResponse struct {
+	Error *ModelError `json:"error,omitempty"`
+}

@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -25,6 +26,7 @@ func NewAPIHandler() http.Handler {
 	apiV1Router := router.PathPrefix("/api/v1").Subrouter()
 
 	apiV1Router.Methods(http.MethodGet).Path("/metadata").HandlerFunc(metadata)
+	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(scan)
 
 	return router
 }
@@ -67,4 +69,26 @@ func metadata(res http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		log.WithError(err).Error("Error while serializing JSON")
 	}
+}
+
+func scan(res http.ResponseWriter, req *http.Request) {
+	var scanRequest harbor.ScanRequest
+	err := json.NewDecoder(req.Body).Decode(&scanRequest)
+	if err != nil {
+		res.WriteHeader(http.StatusBadRequest)
+
+		errorResponse := harbor.ErrorResponse{
+			Error: &harbor.ModelError{
+				Message: fmt.Sprintf("Error parsing scan request: %s", err.Error()),
+			},
+		}
+		err := json.NewEncoder(res).Encode(errorResponse)
+		if err != nil {
+			log.WithError(err).Error("Error while serializing JSON")
+		}
+
+		return
+	}
+
+	res.WriteHeader(http.StatusAccepted)
 }
