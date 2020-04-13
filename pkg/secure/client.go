@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+//go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Client interface {
 	AddImage(image string) (ScanResponse, error)
 }

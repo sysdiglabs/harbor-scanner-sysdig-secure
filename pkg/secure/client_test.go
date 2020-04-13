@@ -14,7 +14,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 		It("adds image to scanning queue", func() {
 			client := secure.NewClient(os.Getenv("SECURE_API_TOKEN"), os.Getenv("SECURE_URL"))
 
-			response, _ := client.AddImage("nginx")
+			response, _ := client.AddImage("sysdig/agent:9.7.0")
 
 			Expect(response).NotTo(Equal(secure.ScanResponse{}))
 			Expect(response.ImageContent).NotTo(BeNil())

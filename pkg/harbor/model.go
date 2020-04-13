@@ -40,3 +40,7 @@ type ModelError struct {
 type ErrorResponse struct {
 	Error *ModelError `json:"error,omitempty"`
 }
+
+type ScanResponse struct {
+	Id string `json:"id"`
+}
