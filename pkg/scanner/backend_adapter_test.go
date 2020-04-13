@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	secureError = errors.New("an error from Sysdig Secure")
+	errSecure = errors.New("an error from Sysdig Secure")
 )
 
 var _ = Describe("BackendAdapter", func() {
@@ -50,11 +50,11 @@ var _ = Describe("BackendAdapter", func() {
 
 		Context("when Secure returns an error", func() {
 			It("returns the error", func() {
-				client.EXPECT().AddImage("sysdig/agent:9.7.0").Return(secure.ScanResponse{}, secureError)
+				client.EXPECT().AddImage("sysdig/agent:9.7.0").Return(secure.ScanResponse{}, errSecure)
 
 				_, err := backendAdapter.Scan(scanRequest())
 
-				Expect(err).To(MatchError(secureError))
+				Expect(err).To(MatchError(errSecure))
 			})
 		})
 	})
