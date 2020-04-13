@@ -62,7 +62,7 @@ func (s *client) AddImage(image string) (ScanResponse, error) {
 func (s *client) buildPostRequest(url string, payload []byte) (*http.Request, error) {
 	request, err := http.NewRequest(
 		"POST",
-		s.secureURL+"/api/scanning/v1/anchore/images",
+		s.secureURL+url,
 		strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
