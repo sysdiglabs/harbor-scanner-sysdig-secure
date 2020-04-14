@@ -17,6 +17,31 @@ func NewBackendAdapter(client secure.Client) Adapter {
 	}
 }
 
+func (s *backendAdapter) Metadata() harbor.ScannerAdapterMetadata {
+	return harbor.ScannerAdapterMetadata{
+		Scanner: &harbor.Scanner{
+			Name:    "Sysdig Secure",
+			Vendor:  "Sysdig",
+			Version: "3.2", // TODO: Query backend to get version information
+		},
+		Capabilities: []harbor.ScannerCapability{
+			{
+				ConsumesMimeTypes: []string{
+					harbor.OCIImageManifestMimeType,
+					harbor.DockerDistributionManifestMimeType,
+				},
+				ProducesMimeTypes: []string{
+					harbor.ScanReportMimeType,
+				},
+			},
+		},
+		Properties: map[string]string{
+			"harbor.scanner-adapter/scanner-type":                "os-package-vulnerability",
+			"harbor.scanner-adapter/registry-authorization-type": "Bearer",
+		},
+	}
+}
+
 func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	var result harbor.ScanResponse
 
