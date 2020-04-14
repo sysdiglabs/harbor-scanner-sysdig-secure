@@ -2,6 +2,13 @@ package harbor
 
 import "time"
 
+const (
+	ScannerAdapterMetadataMimeType     = "application/vnd.scanner.adapter.metadata+json; version=1.0"
+	OCIImageManifestMimeType           = "application/vnd.oci.image.manifest.v1+json"
+	DockerDistributionManifestMimeType = "application/vnd.docker.distribution.manifest.v2+json"
+	ScanReportMimeType                 = "application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0"
+)
+
 type Scanner struct {
 	Name    string `json:"name,omitempty"`
 	Vendor  string `json:"vendor,omitempty"`

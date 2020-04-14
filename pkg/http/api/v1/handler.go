@@ -11,13 +11,6 @@ import (
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 )
 
-const (
-	scannerAdapterMetadataMimeType     = "application/vnd.scanner.adapter.metadata+json; version=1.0"
-	ociImageManifestMimeType           = "application/vnd.oci.image.manifest.v1+json"
-	dockerDistributionManifestMimeType = "application/vnd.docker.distribution.manifest.v2+json"
-	scanReportMimeType                 = "application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0"
-)
-
 func NewAPIHandler() http.Handler {
 	router := mux.NewRouter()
 
@@ -39,7 +32,7 @@ func logRequest(next http.Handler) http.Handler {
 }
 
 func metadata(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", scannerAdapterMetadataMimeType)
+	res.Header().Set("Content-Type", harbor.ScannerAdapterMetadataMimeType)
 
 	result := harbor.ScannerAdapterMetadata{
 		Scanner: &harbor.Scanner{
@@ -50,11 +43,11 @@ func metadata(res http.ResponseWriter, req *http.Request) {
 		Capabilities: []harbor.ScannerCapability{
 			{
 				ConsumesMimeTypes: []string{
-					ociImageManifestMimeType,
-					dockerDistributionManifestMimeType,
+					harbor.OCIImageManifestMimeType,
+					harbor.DockerDistributionManifestMimeType,
 				},
 				ProducesMimeTypes: []string{
-					scanReportMimeType,
+					harbor.ScanReportMimeType,
 				},
 			},
 		},
