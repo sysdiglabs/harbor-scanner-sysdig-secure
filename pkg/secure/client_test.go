@@ -42,6 +42,8 @@ var _ = Describe("Sysdig Secure Client", func() {
 			response, _ := client.GetVulnerabilities("sha256:49d142e1e11ff9ab2bcaf5fb4408f55eec2a037a66281a16aede375b8e47a789")
 
 			Expect(response).NotTo(Equal(secure.VulnerabilityReport{}))
+			Expect(len(response.Vulnerabilities)).To(BeNumerically(">", 0))
+			Expect(len(response.Vulnerabilities[0].NVDData)).To(BeNumerically(">", 0))
 		})
 		Context("when an error happens", func() {
 			It("returns the error", func() {

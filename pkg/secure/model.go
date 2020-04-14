@@ -73,6 +73,6 @@ type NVDData struct {
 
 type CSS struct {
 	BaseScore           float32 `json:"base_score"`
-	ExploitabilityScore float32 `json:"base_score"`
+	ExploitabilityScore float32 `json:"exploitability_score"`
 	ImpactScore         float32 `json:"impact_score"`
 }
