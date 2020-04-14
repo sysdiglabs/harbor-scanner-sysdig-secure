@@ -17,7 +17,7 @@ func NewBackendAdapter(client secure.Client) Adapter {
 	}
 }
 
-func (s *backendAdapter) Metadata() harbor.ScannerAdapterMetadata {
+func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 	return harbor.ScannerAdapterMetadata{
 		Scanner: &harbor.Scanner{
 			Name:    "Sysdig Secure",

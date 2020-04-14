@@ -6,29 +6,51 @@ import (
 	"net/http/httptest"
 	"strings"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/http/api/v1"
+	v1 "github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/http/api/v1"
+	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner/mocks"
 )
 
 var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
+	var (
+		controller *gomock.Controller
+		adapter    *mocks.MockAdapter
+		handler    http.Handler
+	)
+
+	BeforeEach(func() {
+		controller = gomock.NewController(GinkgoT())
+		adapter = mocks.NewMockAdapter(controller)
+		handler = v1.NewAPIHandler(adapter)
+	})
+
+	AfterEach(func() {
+		controller.Finish()
+	})
+
 	Context("GET /api/v1/metadata", func() {
+		BeforeEach(func() {
+			adapter.EXPECT().GetMetadata().Return(sysdigSecureScannerAdapterMetadata())
+		})
+
 		It("returns OK", func() {
-			response := doGetRequest("/api/v1/metadata")
+			response := doGetRequest(handler, "/api/v1/metadata")
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
 
 		It("returns scanner.adapter.metadata Mime Type", func() {
-			response := doGetRequest("/api/v1/metadata")
+			response := doGetRequest(handler, "/api/v1/metadata")
 
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.metadata+json; version=1.0"))
 		})
 
 		It("returns a valid scanner.adapter.metadata encoded as JSON", func() {
-			response := doGetRequest("/api/v1/metadata")
+			response := doGetRequest(handler, "/api/v1/metadata")
 
 			var result harbor.ScannerAdapterMetadata
 			json.NewDecoder(response.Body).Decode(&result)
@@ -53,7 +75,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 			}
 			payload, _ := json.Marshal(scanRequest)
 
-			response := doPostRequest("/api/v1/scan", string(payload))
+			response := doPostRequest(handler, "/api/v1/scan", string(payload))
 
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 		})
@@ -62,7 +84,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 			It("returns BAD_REQUEST", func() {
 				scanRequest := ""
 
-				response := doPostRequest("/api/v1/scan", scanRequest)
+				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
 
 				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
 			})
@@ -70,7 +92,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 			It("returns a an error encoded as JSON", func() {
 				scanRequest := "invalid json"
 
-				response := doPostRequest("/api/v1/scan", scanRequest)
+				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
 
 				var result harbor.ErrorResponse
 				json.NewDecoder(response.Body).Decode(&result)
@@ -81,23 +103,19 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 	})
 })
 
-func doGetRequest(path string) *http.Response {
+func doGetRequest(handler http.Handler, path string) *http.Response {
 	request, _ := http.NewRequest(http.MethodGet, path, nil)
 
 	recorder := httptest.NewRecorder()
-
-	handler := v1.NewAPIHandler()
 	handler.ServeHTTP(recorder, request)
 
 	return recorder.Result()
 }
 
-func doPostRequest(path string, payload string) *http.Response {
+func doPostRequest(handler http.Handler, path string, payload string) *http.Response {
 	request, _ := http.NewRequest(http.MethodPost, path, strings.NewReader(payload))
 
 	recorder := httptest.NewRecorder()
-
-	handler := v1.NewAPIHandler()
 	handler.ServeHTTP(recorder, request)
 
 	return recorder.Result()
