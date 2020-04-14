@@ -1,5 +1,5 @@
 test:
-	ginkgo -r .
+	ginkgo -r . --randomizeAllSpecs --randomizeSuites --failOnPending --trace --race --progress
 
 docker:
 	docker build -f build/Dockerfile -t sysdiglabs/harbor-scanner-sysdig-secure .

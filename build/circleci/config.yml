@@ -16,12 +16,8 @@ jobs:
             - v1-pkg-cache
 
       - run: go get -v -t -d ./...
-
-      - run: go get github.com/jstemmer/go-junit-report
-      - run: go test -v ./... | tee ${TEST_RESULTS}/go-test.out
-      - run: go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml
-      - store_test_results:
-          path: /tmp/test-results
+      - run: go get github.com/onsi/ginkgo/ginkgo
+      - run: ginkgo -r . --randomizeAllSpecs --randomizeSuites --failOnPending --cover --trace --race --progress
 
       - save_cache: # Store cache in the /go/pkg directory
           key: v1-pkg-cache
