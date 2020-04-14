@@ -28,3 +28,7 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 	result.Id = response.ImageDigest
 	return result, nil
 }
+
+func (s *backendAdapter) GetScanReport(scanRequestID string) (harbor.VulnerabilityReport, error) {
+	return harbor.VulnerabilityReport{}, nil
+}

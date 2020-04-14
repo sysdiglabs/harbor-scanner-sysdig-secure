@@ -1,5 +1,7 @@
 package harbor
 
+import "time"
+
 type Scanner struct {
 	Name    string `json:"name,omitempty"`
 	Vendor  string `json:"vendor,omitempty"`
@@ -43,4 +45,33 @@ type ErrorResponse struct {
 
 type ScanResponse struct {
 	Id string `json:"id"`
+}
+
+type VulnerabilityReport struct {
+	GeneratedAt     time.Time           `json:"generated_at,omitempty"`
+	Artifact        *Artifact           `json:"artifact,omitempty"`
+	Scanner         *Scanner            `json:"scanner,omitempty"`
+	Severity        *Severity           `json:"severity,omitempty"`
+	Vulnerabilities []VulnerabilityItem `json:"vulnerabilities,omitempty"`
+}
+
+type Severity string
+
+const (
+	UNKNOWN    Severity = "Unknown"
+	NEGLIGIBLE Severity = "Negligible"
+	LOW        Severity = "Low"
+	MEDIUM     Severity = "Medium"
+	HIGH       Severity = "High"
+	CRITICAL   Severity = "Critical"
+)
+
+type VulnerabilityItem struct {
+	ID          string    `json:"id,omitempty"`
+	Package     string    `json:"package,omitempty"`
+	Version     string    `json:"version,omitempty"`
+	FixVersion  string    `json:"fix_version,omitempty"`
+	Severity    *Severity `json:"severity,omitempty"`
+	Description string    `json:"description,omitempty"`
+	Links       []string  `json:"links,omitempty"`
 }
