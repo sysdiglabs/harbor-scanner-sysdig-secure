@@ -3,6 +3,7 @@ package secure
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -11,6 +12,7 @@ import (
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Client interface {
 	AddImage(image string) (ScanResponse, error)
+	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
 }
 
 func NewClient(apiToken string, secureURL string) Client {
@@ -33,12 +35,10 @@ func (s *client) AddImage(image string) (ScanResponse, error) {
 		"tag": image,
 	}
 	payload, _ := json.Marshal(params)
-	request, err := s.buildPostRequest("/api/scanning/v1/anchore/images", payload)
-	if err != nil {
-		return emptyResult, err
-	}
-
-	response, err := s.client.Do(request)
+	response, err := s.doRequest(
+		http.MethodPost,
+		"/api/scanning/v1/anchore/images",
+		payload)
 	if err != nil {
 		return emptyResult, err
 	}
@@ -60,10 +60,10 @@ func (s *client) AddImage(image string) (ScanResponse, error) {
 	return result[0], nil
 }
 
-func (s *client) buildPostRequest(url string, payload []byte) (*http.Request, error) {
+func (s *client) doRequest(method string, url string, payload []byte) (*http.Response, error) {
 	request, err := http.NewRequest(
-		"POST",
-		s.secureURL+url,
+		method,
+		fmt.Sprintf("%s%s", s.secureURL, url),
 		strings.NewReader(string(payload)))
 	if err != nil {
 		return nil, err
@@ -72,7 +72,12 @@ func (s *client) buildPostRequest(url string, payload []byte) (*http.Request, er
 	request.Header.Add("Content-Type", "application/json")
 	request.Header.Add("Authorization", "Bearer "+s.apiToken)
 
-	return request, nil
+	response, err := s.client.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
 
 func (s *client) checkErrorInSecureAPI(response *http.Response, body []byte) error {
@@ -85,4 +90,31 @@ func (s *client) checkErrorInSecureAPI(response *http.Response, body []byte) err
 		return err
 	}
 	return errors.New(secureError.Message)
+}
+
+func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, error) {
+	var result VulnerabilityReport
+
+	response, err := s.doRequest(
+		http.MethodGet,
+		fmt.Sprintf("/api/scanning/v1/anchore/images/%s/vuln/all", shaDigest),
+		nil)
+	if err != nil {
+		return result, err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	defer response.Body.Close()
+	if err != nil {
+		return result, err
+	}
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		return result, err
+	}
+
+	if err = json.Unmarshal(body, &result); err != nil {
+		return result, err
+	}
+
+	return result, nil
 }
