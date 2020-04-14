@@ -47,3 +47,18 @@ func (mr *MockClientMockRecorder) AddImage(image interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddImage", reflect.TypeOf((*MockClient)(nil).AddImage), image)
 }
+
+// GetVulnerabilities mocks base method
+func (m *MockClient) GetVulnerabilities(shaDigest string) (secure.VulnerabilityReport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVulnerabilities", shaDigest)
+	ret0, _ := ret[0].(secure.VulnerabilityReport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVulnerabilities indicates an expected call of GetVulnerabilities
+func (mr *MockClientMockRecorder) GetVulnerabilities(shaDigest interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilities", reflect.TypeOf((*MockClient)(nil).GetVulnerabilities), shaDigest)
+}
