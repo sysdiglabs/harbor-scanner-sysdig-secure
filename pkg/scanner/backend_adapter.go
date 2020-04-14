@@ -29,6 +29,28 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 	return result, nil
 }
 
-func (s *backendAdapter) GetScanReport(scanRequestID string) (harbor.VulnerabilityReport, error) {
-	return harbor.VulnerabilityReport{}, nil
+func (s *backendAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.VulnerabilityReport, error) {
+	var result harbor.VulnerabilityReport
+
+	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(scanRequestID)
+	if err != nil {
+		return result, err
+	}
+
+	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
+		result.Vulnerabilities = append(result.Vulnerabilities, toHarborVulnerabilityItem(vulnerability))
+	}
+
+	return result, nil
+}
+
+func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability) harbor.VulnerabilityItem {
+	return harbor.VulnerabilityItem{
+		ID:         vulnerability.Vuln,
+		Package:    vulnerability.PackageName,
+		Version:    vulnerability.PackageVersion,
+		FixVersion: vulnerability.Fix,
+		Severity:   harbor.Severity(vulnerability.Severity),
+		Links:      []string{vulnerability.URL},
+	}
 }

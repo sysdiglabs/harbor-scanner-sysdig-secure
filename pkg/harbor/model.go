@@ -67,11 +67,11 @@ const (
 )
 
 type VulnerabilityItem struct {
-	ID          string    `json:"id,omitempty"`
-	Package     string    `json:"package,omitempty"`
-	Version     string    `json:"version,omitempty"`
-	FixVersion  string    `json:"fix_version,omitempty"`
-	Severity    *Severity `json:"severity,omitempty"`
-	Description string    `json:"description,omitempty"`
-	Links       []string  `json:"links,omitempty"`
+	ID          string   `json:"id,omitempty"`
+	Package     string   `json:"package,omitempty"`
+	Version     string   `json:"version,omitempty"`
+	FixVersion  string   `json:"fix_version,omitempty"`
+	Severity    Severity `json:"severity,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Links       []string `json:"links,omitempty"`
 }
