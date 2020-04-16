@@ -12,6 +12,7 @@ import (
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	v1 "github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/http/api/v1"
+	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner/mocks"
 )
 
@@ -127,6 +128,18 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 			json.NewDecoder(response.Body).Decode(&result)
 
 			Expect(result).To(Equal(vulnerabilityReport()))
+		})
+
+		Context("when scan_request_id doesn't exist", func() {
+			BeforeEach(func() {
+				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.ScanRequestIDNotFoundErr)
+			})
+
+			It("returns NOT_FOUND", func() {
+				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
+			})
 		})
 	})
 })

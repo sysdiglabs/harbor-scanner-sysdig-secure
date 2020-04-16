@@ -69,6 +69,15 @@ var _ = Describe("BackendAdapter", func() {
 		})
 
 		Context("when Secure returns an error", func() {
+			Context("when Secure cannot find the image scanned", func() {
+				It("returns a ScanRequestID Not Found Error", func() {
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ImageNotFoundErr)
+					_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
+
+					Expect(err).To(MatchError(scanner.ScanRequestIDNotFoundErr))
+				})
+			})
+
 			It("returns the error", func() {
 				client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
 

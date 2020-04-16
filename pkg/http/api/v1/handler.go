@@ -76,7 +76,25 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
 
 	vars := mux.Vars(req)
-	vulnerabilityReport, _ := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
+	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
+
+	if err != nil {
+		if err == scanner.ScanRequestIDNotFoundErr {
+			res.WriteHeader(http.StatusNotFound)
+
+			errorResponse := harbor.ErrorResponse{
+				Error: &harbor.ModelError{
+					Message: err.Error(),
+				},
+			}
+			err := json.NewEncoder(res).Encode(errorResponse)
+			if err != nil {
+				log.WithError(err).Error("Error while serializing JSON")
+			}
+
+			return
+		}
+	}
 
 	json.NewEncoder(res).Encode(vulnerabilityReport)
 }

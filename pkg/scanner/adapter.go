@@ -1,7 +1,13 @@
 package scanner
 
 import (
+	"errors"
+
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
+)
+
+var (
+	ScanRequestIDNotFoundErr = errors.New("scanRequestID cannot be found")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks

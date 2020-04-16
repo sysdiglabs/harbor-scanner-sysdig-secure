@@ -59,6 +59,9 @@ func (s *backendAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.Vu
 
 	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(scanRequestID)
 	if err != nil {
+		if err == secure.ImageNotFoundErr {
+			return result, ScanRequestIDNotFoundErr
+		}
 		return result, err
 	}
 
