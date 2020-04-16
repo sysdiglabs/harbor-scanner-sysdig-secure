@@ -29,6 +29,7 @@ func NewAPIHandler(adapter scanner.Adapter) http.Handler {
 
 	apiV1Router.Methods(http.MethodGet).Path("/metadata").HandlerFunc(handler.metadata)
 	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(handler.scan)
+	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
 
 	return router
 }
@@ -69,4 +70,13 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.WriteHeader(http.StatusAccepted)
+}
+
+func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
+
+	vars := mux.Vars(req)
+	vulnerabilityReport, _ := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
+
+	json.NewEncoder(res).Encode(vulnerabilityReport)
 }

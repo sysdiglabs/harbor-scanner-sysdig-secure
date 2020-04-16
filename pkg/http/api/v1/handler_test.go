@@ -101,6 +101,34 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 			})
 		})
 	})
+
+	Context("POST /api/v1/scan", func() {
+		It("returns OK", func() {
+			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
+
+			response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+
+		It("returns scanner.adapter.vuln.report.harbor Mime Type", func() {
+			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
+
+			response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0"))
+		})
+
+		It("returns a valid scanner.vuln.report.harbor as JSON", func() {
+			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
+			response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+			var result harbor.VulnerabilityReport
+			json.NewDecoder(response.Body).Decode(&result)
+
+			Expect(result).To(Equal(vulnerabilityReport()))
+		})
+	})
 })
 
 func doGetRequest(handler http.Handler, path string) *http.Response {
@@ -150,6 +178,24 @@ func harborInvalidScanResponse() harbor.ErrorResponse {
 	return harbor.ErrorResponse{
 		Error: &harbor.ModelError{
 			Message: "Error parsing scan request: invalid character 'i' looking for beginning of value",
+		},
+	}
+}
+
+func vulnerabilityReport() harbor.VulnerabilityReport {
+	return harbor.VulnerabilityReport{
+		Vulnerabilities: []harbor.VulnerabilityItem{
+			harbor.VulnerabilityItem{
+				ID:          "CVE-2019-9948",
+				Package:     "Python",
+				Version:     "2.7.16",
+				FixVersion:  "None",
+				Severity:    harbor.CRITICAL,
+				Description: "",
+				Links: []string{
+					"https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
+				},
+			},
 		},
 	}
 }
