@@ -98,7 +98,6 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 		Context("when receiving a not valid JSON", func() {
 			It("returns BAD_REQUEST", func() {
 				scanRequest := "invalid json"
-
 				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
 
 				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
@@ -106,7 +105,6 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 			It("returns scanner.adapter.error mime type", func() {
 				scanRequest := "invalid json"
-
 				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
 
 				Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.error+json; version=1.0"))
@@ -114,13 +112,42 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 			It("returns a an error encoded as JSON", func() {
 				scanRequest := "invalid json"
-
 				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
 
 				var result harbor.ErrorResponse
 				json.NewDecoder(response.Body).Decode(&result)
 
 				Expect(result).To(Equal(harborErrorResponseFor("Error parsing scan request: invalid character 'i' looking for beginning of value")))
+			})
+		})
+
+		Context("when other unexpected errors happen", func() {
+			BeforeEach(func() {
+				adapter.EXPECT().Scan(harborScanRequest()).Return(harbor.ScanResponse{}, ErrUnexpected)
+			})
+
+			It("returns INTERNAL_SERVER_ERROR", func() {
+				payload, _ := json.Marshal(harborScanRequest())
+				response := doPostRequest(handler, "/api/v1/scan", string(payload))
+
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+
+			It("returns scanner.adapter.error mime type", func() {
+				payload, _ := json.Marshal(harborScanRequest())
+				response := doPostRequest(handler, "/api/v1/scan", string(payload))
+
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.error+json; version=1.0"))
+			})
+
+			It("returns a the error encoded as JSON", func() {
+				payload, _ := json.Marshal(harborScanRequest())
+				response := doPostRequest(handler, "/api/v1/scan", string(payload))
+
+				var result harbor.ErrorResponse
+				json.NewDecoder(response.Body).Decode(&result)
+
+				Expect(result).To(Equal(harborErrorResponseFor(ErrUnexpected.Error())))
 			})
 		})
 	})

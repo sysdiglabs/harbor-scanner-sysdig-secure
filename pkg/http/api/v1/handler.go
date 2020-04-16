@@ -60,7 +60,13 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	scanResponse, _ := h.adapter.Scan(scanRequest)
+	scanResponse, err := h.adapter.Scan(scanRequest)
+	if err != nil {
+		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
+		res.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(res).Encode(errorResponseFromError(err))
+		return
+	}
 
 	res.Header().Set("Content-Type", harbor.ScanResponseMimeType)
 	res.WriteHeader(http.StatusAccepted)
