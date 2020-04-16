@@ -27,7 +27,7 @@ type ScannerAdapterMetadata struct {
 }
 
 type Registry struct {
-	Url           string `json:"url,omitempty"`
+	URL           string `json:"url,omitempty"`
 	Authorization string `json:"authorization,omitempty"`
 }
 
@@ -52,7 +52,7 @@ type ErrorResponse struct {
 }
 
 type ScanResponse struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 }
 
 type VulnerabilityReport struct {

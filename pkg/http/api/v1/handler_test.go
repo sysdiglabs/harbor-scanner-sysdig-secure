@@ -69,7 +69,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 		It("returns ACCEPTED", func() {
 			scanRequest := harbor.ScanRequest{
 				Registry: &harbor.Registry{
-					Url:           "https://core.harbor.domain",
+					URL:           "https://core.harbor.domain",
 					Authorization: "Basic BASE64_ENCODED_CREDENTIALS",
 				},
 				Artifact: &harbor.Artifact{

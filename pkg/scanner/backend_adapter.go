@@ -51,7 +51,7 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 		return result, err
 	}
 
-	result.Id = response.ImageDigest
+	result.ID = response.ImageDigest
 	return result, nil
 }
 

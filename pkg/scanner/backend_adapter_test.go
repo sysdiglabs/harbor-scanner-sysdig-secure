@@ -45,7 +45,7 @@ var _ = Describe("BackendAdapter", func() {
 
 			result, _ := backendAdapter.Scan(scanRequest())
 
-			Expect(result).To(Equal(harbor.ScanResponse{Id: imageDigest}))
+			Expect(result).To(Equal(harbor.ScanResponse{ID: imageDigest}))
 		})
 
 		Context("when Secure returns an error", func() {
@@ -101,7 +101,7 @@ var _ = Describe("BackendAdapter", func() {
 func scanRequest() harbor.ScanRequest {
 	return harbor.ScanRequest{
 		Registry: &harbor.Registry{
-			Url:           "",
+			URL:           "",
 			Authorization: "",
 		},
 		Artifact: &harbor.Artifact{
