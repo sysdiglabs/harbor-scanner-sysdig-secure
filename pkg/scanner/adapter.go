@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	ScanRequestIDNotFoundErr = errors.New("scanRequestID cannot be found")
+	ScanRequestIDNotFoundErr      = errors.New("scanRequestID cannot be found")
+	VulnerabiltyReportNotReadyErr = errors.New("image is being scanned and report is still not ready")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks

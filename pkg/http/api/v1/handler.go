@@ -94,6 +94,12 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 
 			return
 		}
+
+		if err == scanner.VulnerabiltyReportNotReadyErr {
+			res.Header().Set("Refresh-After", "120")
+			res.WriteHeader(http.StatusFound)
+			return
+		}
 	}
 
 	json.NewEncoder(res).Encode(vulnerabilityReport)

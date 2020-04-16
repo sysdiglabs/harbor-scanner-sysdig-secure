@@ -141,6 +141,24 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
 		})
+
+		Context("when image is still being scanned", func() {
+			BeforeEach(func() {
+				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.VulnerabiltyReportNotReadyErr)
+			})
+
+			It("returns FOUND", func() {
+				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+				Expect(response.StatusCode).To(Equal(http.StatusFound))
+			})
+
+			It("returns the interval after request should be retried", func() {
+				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+				Expect(response.Header.Get("Refresh-After")).To(Equal("120"))
+			})
+		})
 	})
 })
 

@@ -20,7 +20,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 	Context("when adding an image to scanning queue", func() {
 		It("adds image to scanning queue", func() {
-			response, _ := client.AddImage("sysdig/agent:9.7.0")
+			response, _ := client.AddImage("sysdig/agent:9.8.0", false)
 
 			Expect(response).NotTo(Equal(secure.ScanResponse{}))
 			Expect(response.ImageContent).NotTo(BeNil())
@@ -30,7 +30,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 		Context("when an error happens", func() {
 			It("returns the error", func() {
-				_, err := client.AddImage("sysdiglabs/non-existent")
+				_, err := client.AddImage("sysdiglabs/non-existent", false)
 
 				Expect(err).To(MatchError("cannot fetch image digest/manifest from registry"))
 			})
@@ -39,7 +39,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 	Context("when retrieving vulnerabilities for an image", func() {
 		It("gets the report for a SHA", func() {
-			response, _ := client.GetVulnerabilities("sha256:49d142e1e11ff9ab2bcaf5fb4408f55eec2a037a66281a16aede375b8e47a789")
+			response, _ := client.GetVulnerabilities("sha256:fda6b046981f5dab88aad84c6cebed4e47a0d6ad1c8ff7f58b5f0e6a95a5b2c1")
 
 			Expect(response).NotTo(Equal(secure.VulnerabilityReport{}))
 			Expect(len(response.Vulnerabilities)).To(BeNumerically(">", 0))
@@ -47,10 +47,18 @@ var _ = Describe("Sysdig Secure Client", func() {
 		})
 
 		Context("when an error happens", func() {
-			It("returns the error", func() {
+			It("returns a ImageNotFoundErr if the image does not exists on Secure", func() {
 				_, err := client.GetVulnerabilities("non-existent")
 
 				Expect(err).To(MatchError(secure.ImageNotFoundErr))
+			})
+
+			It("returns a ReportNotReadyErr if the image is being analyzed", func() {
+				response, _ := client.AddImage("sysdig/agent:9.9.0", true)
+
+				_, err := client.GetVulnerabilities(response.ImageDigest)
+
+				Expect(err).To(MatchError(secure.VulnerabiltyReportNotReadyErr))
 			})
 		})
 	})

@@ -34,18 +34,18 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // AddImage mocks base method
-func (m *MockClient) AddImage(image string) (secure.ScanResponse, error) {
+func (m *MockClient) AddImage(image string, force bool) (secure.ScanResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddImage", image)
+	ret := m.ctrl.Call(m, "AddImage", image, force)
 	ret0, _ := ret[0].(secure.ScanResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // AddImage indicates an expected call of AddImage
-func (mr *MockClientMockRecorder) AddImage(image interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) AddImage(image, force interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddImage", reflect.TypeOf((*MockClient)(nil).AddImage), image)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddImage", reflect.TypeOf((*MockClient)(nil).AddImage), image, force)
 }
 
 // GetVulnerabilities mocks base method

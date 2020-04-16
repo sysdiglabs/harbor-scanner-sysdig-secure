@@ -10,12 +10,13 @@ import (
 )
 
 var (
-	ImageNotFoundErr = errors.New("image not found in Sysdig Secure")
+	ImageNotFoundErr              = errors.New("image not found in Sysdig Secure")
+	VulnerabiltyReportNotReadyErr = errors.New("image is being analzyed by Sysdig Secure")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Client interface {
-	AddImage(image string) (ScanResponse, error)
+	AddImage(image string, force bool) (ScanResponse, error)
 	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
 }
 
@@ -32,7 +33,7 @@ type client struct {
 	client    http.Client
 }
 
-func (s *client) AddImage(image string) (ScanResponse, error) {
+func (s *client) AddImage(image string, force bool) (ScanResponse, error) {
 	var emptyResult ScanResponse
 
 	params := map[string]string{
@@ -41,7 +42,7 @@ func (s *client) AddImage(image string) (ScanResponse, error) {
 	payload, _ := json.Marshal(params)
 	response, err := s.doRequest(
 		http.MethodPost,
-		"/api/scanning/v1/anchore/images",
+		fmt.Sprintf("/api/scanning/v1/anchore/images?force=%t", force),
 		payload)
 	if err != nil {
 		return emptyResult, err
@@ -112,9 +113,16 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	if err != nil {
 		return result, err
 	}
+
 	if err = s.checkErrorInSecureAPI(response, body); err != nil {
 		if response.StatusCode == http.StatusNotFound {
-			return result, ImageNotFoundErr
+			if err.Error() == "image not found in DB" {
+				return result, ImageNotFoundErr
+			}
+
+			if strings.HasPrefix(err.Error(), "image is not analyzed - analysis_status:") {
+				return result, VulnerabiltyReportNotReadyErr
+			}
 		}
 		return result, err
 	}

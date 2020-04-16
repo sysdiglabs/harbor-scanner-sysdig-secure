@@ -45,7 +45,8 @@ func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	var result harbor.ScanResponse
 
-	response, err := s.secureClient.AddImage(fmt.Sprintf("%s:%s", req.Artifact.Repository, req.Artifact.Tag))
+	response, err := s.secureClient.AddImage(
+		fmt.Sprintf("%s:%s", req.Artifact.Repository, req.Artifact.Tag), false)
 	if err != nil {
 		return result, err
 	}
@@ -62,6 +63,11 @@ func (s *backendAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.Vu
 		if err == secure.ImageNotFoundErr {
 			return result, ScanRequestIDNotFoundErr
 		}
+
+		if err == secure.VulnerabiltyReportNotReadyErr {
+			return result, VulnerabiltyReportNotReadyErr
+		}
+
 		return result, err
 	}
 

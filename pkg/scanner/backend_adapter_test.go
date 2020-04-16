@@ -41,7 +41,7 @@ var _ = Describe("BackendAdapter", func() {
 	Context("when scanning an image", func() {
 		It("sends the repository and tag to Sysdig Secure", func() {
 			secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-			client.EXPECT().AddImage("sysdig/agent:9.7.0").Return(secureResponse, nil)
+			client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secureResponse, nil)
 
 			result, _ := backendAdapter.Scan(scanRequest())
 
@@ -50,7 +50,7 @@ var _ = Describe("BackendAdapter", func() {
 
 		Context("when Secure returns an error", func() {
 			It("returns the error", func() {
-				client.EXPECT().AddImage("sysdig/agent:9.7.0").Return(secure.ScanResponse{}, errSecure)
+				client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
 
 				_, err := backendAdapter.Scan(scanRequest())
 
@@ -75,6 +75,15 @@ var _ = Describe("BackendAdapter", func() {
 					_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
 
 					Expect(err).To(MatchError(scanner.ScanRequestIDNotFoundErr))
+				})
+			})
+
+			Context("when Secure is still scanning the image", func() {
+				It("returns a VulnerabilityReport is not Ready Error", func() {
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.VulnerabiltyReportNotReadyErr)
+					_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
+
+					Expect(err).To(MatchError(scanner.VulnerabiltyReportNotReadyErr))
 				})
 			})
 
