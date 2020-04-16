@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	log "github.com/sirupsen/logrus"
 
@@ -23,22 +24,13 @@ func NewAPIHandler(adapter scanner.Adapter) http.Handler {
 
 	router := mux.NewRouter()
 
-	router.Use(handler.logRequest)
-
 	apiV1Router := router.PathPrefix("/api/v1").Subrouter()
 
 	apiV1Router.Methods(http.MethodGet).Path("/metadata").HandlerFunc(handler.metadata)
 	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(handler.scan)
 	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
 
-	return router
-}
-
-func (h *requestHandler) logRequest(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Tracef("%s - %s %s %s", r.RemoteAddr, r.Proto, r.Method, r.URL.RequestURI())
-		next.ServeHTTP(w, r)
-	})
+	return handlers.LoggingHandler(log.StandardLogger().Writer(), router)
 }
 
 func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {
