@@ -2,6 +2,7 @@ package v1_test
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,6 +15,10 @@ import (
 	v1 "github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/http/api/v1"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner/mocks"
+)
+
+var (
+	ErrUnexpected = errors.New("an unexpected error")
 )
 
 var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
@@ -98,7 +103,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				var result harbor.ErrorResponse
 				json.NewDecoder(response.Body).Decode(&result)
 
-				Expect(result).To(Equal(harborInvalidScanResponse()))
+				Expect(result).To(Equal(harborErrorResponseFor("Error parsing scan request: invalid character 'i' looking for beginning of value")))
 			})
 		})
 	})
@@ -159,6 +164,33 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				Expect(response.Header.Get("Refresh-After")).To(Equal("120"))
 			})
 		})
+
+		Context("when other unexpected errors happen", func() {
+			BeforeEach(func() {
+				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), ErrUnexpected)
+			})
+
+			It("returns INTERNAL_SERVER_ERROR", func() {
+				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+
+			It("returns scanner.adapter.error mime type", func() {
+				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.error+json; version=1.0"))
+			})
+
+			It("returns a the error encoded as JSON", func() {
+				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+				var result harbor.ErrorResponse
+				json.NewDecoder(response.Body).Decode(&result)
+
+				Expect(result).To(Equal(harborErrorResponseFor(ErrUnexpected.Error())))
+			})
+		})
 	})
 })
 
@@ -205,10 +237,10 @@ func sysdigSecureScannerAdapterMetadata() harbor.ScannerAdapterMetadata {
 	}
 }
 
-func harborInvalidScanResponse() harbor.ErrorResponse {
+func harborErrorResponseFor(message string) harbor.ErrorResponse {
 	return harbor.ErrorResponse{
 		Error: &harbor.ModelError{
-			Message: "Error parsing scan request: invalid character 'i' looking for beginning of value",
+			Message: message,
 		},
 	}
 }

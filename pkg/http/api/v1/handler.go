@@ -73,34 +73,34 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
-
 	vars := mux.Vars(req)
 	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
 
 	if err != nil {
-		if err == scanner.ScanRequestIDNotFoundErr {
+		switch err {
+		case scanner.ScanRequestIDNotFoundErr:
 			res.WriteHeader(http.StatusNotFound)
-
-			errorResponse := harbor.ErrorResponse{
-				Error: &harbor.ModelError{
-					Message: err.Error(),
-				},
-			}
-			err := json.NewEncoder(res).Encode(errorResponse)
-			if err != nil {
-				log.WithError(err).Error("Error while serializing JSON")
-			}
-
-			return
-		}
-
-		if err == scanner.VulnerabiltyReportNotReadyErr {
+			json.NewEncoder(res).Encode(errorResponseFromError(err))
+		case scanner.VulnerabiltyReportNotReadyErr:
 			res.Header().Set("Refresh-After", "120")
 			res.WriteHeader(http.StatusFound)
-			return
+		default:
+			res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
+			res.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(res).Encode(errorResponseFromError(err))
 		}
+
+		return
 	}
 
+	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
 	json.NewEncoder(res).Encode(vulnerabilityReport)
+}
+
+func errorResponseFromError(err error) harbor.ErrorResponse {
+	return harbor.ErrorResponse{
+		Error: &harbor.ModelError{
+			Message: err.Error(),
+		},
+	}
 }

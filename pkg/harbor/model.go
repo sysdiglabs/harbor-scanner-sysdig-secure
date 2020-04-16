@@ -7,6 +7,7 @@ const (
 	OCIImageManifestMimeType           = "application/vnd.oci.image.manifest.v1+json"
 	DockerDistributionManifestMimeType = "application/vnd.docker.distribution.manifest.v2+json"
 	ScanReportMimeType                 = "application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0"
+	ScanAdapterErrorMimeType           = "application/vnd.scanner.adapter.error+json; version=1.0"
 )
 
 type Scanner struct {
