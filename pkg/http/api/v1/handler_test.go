@@ -67,19 +67,32 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 	Context("POST /api/v1/scan", func() {
 		It("returns ACCEPTED", func() {
-			payload, _ := json.Marshal(harborScanRequest())
+			adapter.EXPECT().Scan(harborScanRequest()).Return(harborScanResponse(), nil)
 
+			payload, _ := json.Marshal(harborScanRequest())
 			response := doPostRequest(handler, "/api/v1/scan", string(payload))
 
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 		})
 
 		It("returns scanner.adapter.scan.response mime type", func() {
-			payload, _ := json.Marshal(harborScanRequest())
+			adapter.EXPECT().Scan(harborScanRequest()).Return(harborScanResponse(), nil)
 
+			payload, _ := json.Marshal(harborScanRequest())
 			response := doPostRequest(handler, "/api/v1/scan", string(payload))
 
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.scan.response+json; version=1.0"))
+		})
+
+		It("returns a valid scanner.adapter.scan.response as JSON", func() {
+			adapter.EXPECT().Scan(harborScanRequest()).Return(harborScanResponse(), nil)
+
+			payload, _ := json.Marshal(harborScanRequest())
+			response := doPostRequest(handler, "/api/v1/scan", string(payload))
+
+			var result harbor.ScanResponse
+			json.NewDecoder(response.Body).Decode(&result)
+			Expect(result).To(Equal(harborScanResponse()))
 		})
 
 		Context("when receiving a not valid JSON", func() {
@@ -254,6 +267,10 @@ func harborScanRequest() harbor.ScanRequest {
 			MimeType:   "application/vnd.docker.distribution.manifest.v2+json",
 		},
 	}
+}
+
+func harborScanResponse() harbor.ScanResponse {
+	return harbor.ScanResponse{ID: "an scan response id"}
 }
 
 func harborErrorResponseFor(message string) harbor.ErrorResponse {

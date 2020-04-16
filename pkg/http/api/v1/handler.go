@@ -62,9 +62,12 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 
 		return
 	}
-	// TODO: Do the work here ...
+
+	scanResponse, _ := h.adapter.Scan(scanRequest)
+
 	res.Header().Set("Content-Type", harbor.ScanResponseMimeType)
 	res.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(res).Encode(scanResponse)
 }
 
 func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
