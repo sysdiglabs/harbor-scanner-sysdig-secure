@@ -137,7 +137,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 		Context("when scan_request_id doesn't exist", func() {
 			BeforeEach(func() {
-				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.ScanRequestIDNotFoundErr)
+				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.ErrScanRequestIDNotFound)
 			})
 
 			It("returns NOT_FOUND", func() {
@@ -149,7 +149,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 		Context("when image is still being scanned", func() {
 			BeforeEach(func() {
-				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.VulnerabiltyReportNotReadyErr)
+				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.ErrVulnerabiltyReportNotReady)
 			})
 
 			It("returns FOUND", func() {

@@ -50,7 +50,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 			It("returns a ImageNotFoundErr if the image does not exists on Secure", func() {
 				_, err := client.GetVulnerabilities("non-existent")
 
-				Expect(err).To(MatchError(secure.ImageNotFoundErr))
+				Expect(err).To(MatchError(secure.ErrImageNotFound))
 			})
 
 			It("returns a ReportNotReadyErr if the image is being analyzed", func() {
@@ -58,7 +58,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 				_, err := client.GetVulnerabilities(response.ImageDigest)
 
-				Expect(err).To(MatchError(secure.VulnerabiltyReportNotReadyErr))
+				Expect(err).To(MatchError(secure.ErrVulnerabiltyReportNotReady))
 			})
 		})
 	})

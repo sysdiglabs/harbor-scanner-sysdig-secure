@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ImageNotFoundErr              = errors.New("image not found in Sysdig Secure")
-	VulnerabiltyReportNotReadyErr = errors.New("image is being analzyed by Sysdig Secure")
+	ErrImageNotFound              = errors.New("image not found in Sysdig Secure")
+	ErrVulnerabiltyReportNotReady = errors.New("image is being analzyed by Sysdig Secure")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
@@ -117,11 +117,11 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	if err = s.checkErrorInSecureAPI(response, body); err != nil {
 		if response.StatusCode == http.StatusNotFound {
 			if err.Error() == "image not found in DB" {
-				return result, ImageNotFoundErr
+				return result, ErrImageNotFound
 			}
 
 			if strings.HasPrefix(err.Error(), "image is not analyzed - analysis_status:") {
-				return result, VulnerabiltyReportNotReadyErr
+				return result, ErrVulnerabiltyReportNotReady
 			}
 		}
 		return result, err

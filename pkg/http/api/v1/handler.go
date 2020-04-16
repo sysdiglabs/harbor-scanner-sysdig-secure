@@ -78,10 +78,10 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		switch err {
-		case scanner.ScanRequestIDNotFoundErr:
+		case scanner.ErrScanRequestIDNotFound:
 			res.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(res).Encode(errorResponseFromError(err))
-		case scanner.VulnerabiltyReportNotReadyErr:
+		case scanner.ErrVulnerabiltyReportNotReady:
 			res.Header().Set("Refresh-After", "120")
 			res.WriteHeader(http.StatusFound)
 		default:

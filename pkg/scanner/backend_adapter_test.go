@@ -71,19 +71,19 @@ var _ = Describe("BackendAdapter", func() {
 		Context("when Secure returns an error", func() {
 			Context("when Secure cannot find the image scanned", func() {
 				It("returns a ScanRequestID Not Found Error", func() {
-					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ImageNotFoundErr)
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
 					_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
 
-					Expect(err).To(MatchError(scanner.ScanRequestIDNotFoundErr))
+					Expect(err).To(MatchError(scanner.ErrScanRequestIDNotFound))
 				})
 			})
 
 			Context("when Secure is still scanning the image", func() {
 				It("returns a VulnerabilityReport is not Ready Error", func() {
-					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.VulnerabiltyReportNotReadyErr)
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrVulnerabiltyReportNotReady)
 					_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
 
-					Expect(err).To(MatchError(scanner.VulnerabiltyReportNotReadyErr))
+					Expect(err).To(MatchError(scanner.ErrVulnerabiltyReportNotReady))
 				})
 			})
 
