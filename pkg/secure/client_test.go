@@ -45,11 +45,12 @@ var _ = Describe("Sysdig Secure Client", func() {
 			Expect(len(response.Vulnerabilities)).To(BeNumerically(">", 0))
 			Expect(len(response.Vulnerabilities[0].NVDData)).To(BeNumerically(">", 0))
 		})
+
 		Context("when an error happens", func() {
 			It("returns the error", func() {
 				_, err := client.GetVulnerabilities("non-existent")
 
-				Expect(err).To(MatchError("image not found in DB"))
+				Expect(err).To(MatchError(secure.ImageNotFoundErr))
 			})
 		})
 	})

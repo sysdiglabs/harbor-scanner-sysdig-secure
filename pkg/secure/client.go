@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+var (
+	ImageNotFoundErr = errors.New("image not found in Sysdig Secure")
+)
+
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Client interface {
 	AddImage(image string) (ScanResponse, error)
@@ -109,6 +113,9 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 		return result, err
 	}
 	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		if response.StatusCode == http.StatusNotFound {
+			return result, ImageNotFoundErr
+		}
 		return result, err
 	}
 
