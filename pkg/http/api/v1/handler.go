@@ -44,10 +44,7 @@ func (h *requestHandler) logRequest(next http.Handler) http.Handler {
 func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", harbor.ScannerAdapterMetadataMimeType)
 
-	err := json.NewEncoder(res).Encode(h.adapter.GetMetadata())
-	if err != nil {
-		log.WithError(err).Error("Error while serializing JSON")
-	}
+	json.NewEncoder(res).Encode(h.adapter.GetMetadata())
 }
 
 func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
