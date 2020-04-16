@@ -54,21 +54,16 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 	var scanRequest harbor.ScanRequest
 	err := json.NewDecoder(req.Body).Decode(&scanRequest)
 	if err != nil {
+		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusBadRequest)
-
-		errorResponse := harbor.ErrorResponse{
-			Error: &harbor.ModelError{
-				Message: fmt.Sprintf("Error parsing scan request: %s", err.Error()),
-			},
-		}
-		err := json.NewEncoder(res).Encode(errorResponse)
-		if err != nil {
-			log.WithError(err).Error("Error while serializing JSON")
-		}
+		json.NewEncoder(res).Encode(
+			errorResponseFromError(
+				fmt.Errorf("Error parsing scan request: %s", err.Error())))
 
 		return
 	}
-
+	// TODO: Do the work here ...
+	res.Header().Set("Content-Type", harbor.ScanResponseMimeType)
 	res.WriteHeader(http.StatusAccepted)
 }
 

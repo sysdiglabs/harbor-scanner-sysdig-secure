@@ -67,32 +67,36 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 	Context("POST /api/v1/scan", func() {
 		It("returns ACCEPTED", func() {
-			scanRequest := harbor.ScanRequest{
-				Registry: &harbor.Registry{
-					URL:           "https://core.harbor.domain",
-					Authorization: "Basic BASE64_ENCODED_CREDENTIALS",
-				},
-				Artifact: &harbor.Artifact{
-					Repository: "library/mongo",
-					Digest:     "sha256:6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b",
-					Tag:        "3.14-xenial",
-					MimeType:   "application/vnd.docker.distribution.manifest.v2+json",
-				},
-			}
-			payload, _ := json.Marshal(scanRequest)
+			payload, _ := json.Marshal(harborScanRequest())
 
 			response := doPostRequest(handler, "/api/v1/scan", string(payload))
 
 			Expect(response.StatusCode).To(Equal(http.StatusAccepted))
 		})
 
-		Context("when receiving a not valid scan.request representation", func() {
+		It("returns scanner.adapter.scan.response mime type", func() {
+			payload, _ := json.Marshal(harborScanRequest())
+
+			response := doPostRequest(handler, "/api/v1/scan", string(payload))
+
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.scan.response+json; version=1.0"))
+		})
+
+		Context("when receiving a not valid JSON", func() {
 			It("returns BAD_REQUEST", func() {
-				scanRequest := ""
+				scanRequest := "invalid json"
 
 				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
 
 				Expect(response.StatusCode).To(Equal(http.StatusBadRequest))
+			})
+
+			It("returns scanner.adapter.error mime type", func() {
+				scanRequest := "invalid json"
+
+				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
+
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.error+json; version=1.0"))
 			})
 
 			It("returns a an error encoded as JSON", func() {
@@ -108,7 +112,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 		})
 	})
 
-	Context("POST /api/v1/scan", func() {
+	Context("POST /api/v1/scan/{scan_request_id}/report", func() {
 		It("returns OK", func() {
 			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
 
@@ -233,6 +237,21 @@ func sysdigSecureScannerAdapterMetadata() harbor.ScannerAdapterMetadata {
 		Properties: map[string]string{
 			"harbor.scanner-adapter/scanner-type":                "os-package-vulnerability",
 			"harbor.scanner-adapter/registry-authorization-type": "Bearer",
+		},
+	}
+}
+
+func harborScanRequest() harbor.ScanRequest {
+	return harbor.ScanRequest{
+		Registry: &harbor.Registry{
+			URL:           "https://core.harbor.domain",
+			Authorization: "Basic BASE64_ENCODED_CREDENTIALS",
+		},
+		Artifact: &harbor.Artifact{
+			Repository: "library/mongo",
+			Digest:     "sha256:6c3c624b58dbbcd3c0dd82b4c53f04194d1247c6eebdaab7c610cf7d66709b3b",
+			Tag:        "3.14-xenial",
+			MimeType:   "application/vnd.docker.distribution.manifest.v2+json",
 		},
 	}
 }
