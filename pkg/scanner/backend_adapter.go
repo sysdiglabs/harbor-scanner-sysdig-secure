@@ -7,18 +7,8 @@ import (
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 )
 
-type backendAdapter struct {
-	secureClient secure.Client
-}
-
-func NewBackendAdapter(client secure.Client) Adapter {
-	return &backendAdapter{
-		secureClient: client,
-	}
-}
-
-func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
-	return harbor.ScannerAdapterMetadata{
+var (
+	scannerAdapterMetadata = harbor.ScannerAdapterMetadata{
 		Scanner: &harbor.Scanner{
 			Name:    "Sysdig Secure",
 			Vendor:  "Sysdig",
@@ -40,6 +30,20 @@ func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 			"harbor.scanner-adapter/registry-authorization-type": "Bearer",
 		},
 	}
+)
+
+type backendAdapter struct {
+	secureClient secure.Client
+}
+
+func NewBackendAdapter(client secure.Client) Adapter {
+	return &backendAdapter{
+		secureClient: client,
+	}
+}
+
+func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
+	return scannerAdapterMetadata
 }
 
 func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
