@@ -18,7 +18,8 @@ func main() {
 
 	apiHandler := v1.NewAPIHandler(
 		scanner.NewBackendAdapter(
-			secure.NewClient(os.Getenv("SECURE_API_TOKEN"), os.Getenv("SECURE_URL"))))
+			secure.NewClient(os.Getenv("SECURE_API_TOKEN"), os.Getenv("SECURE_URL"))),
+		log.StandardLogger().Writer())
 
 	apiServer := api.NewServer(apiHandler)
 

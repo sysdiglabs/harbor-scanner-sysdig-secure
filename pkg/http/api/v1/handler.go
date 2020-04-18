@@ -3,11 +3,11 @@ package v1
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	log "github.com/sirupsen/logrus"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
@@ -17,7 +17,7 @@ type requestHandler struct {
 	adapter scanner.Adapter
 }
 
-func NewAPIHandler(adapter scanner.Adapter) http.Handler {
+func NewAPIHandler(adapter scanner.Adapter, logger io.Writer) http.Handler {
 	handler := requestHandler{
 		adapter: adapter,
 	}
@@ -25,12 +25,11 @@ func NewAPIHandler(adapter scanner.Adapter) http.Handler {
 	router := mux.NewRouter()
 
 	apiV1Router := router.PathPrefix("/api/v1").Subrouter()
-
 	apiV1Router.Methods(http.MethodGet).Path("/metadata").HandlerFunc(handler.metadata)
 	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(handler.scan)
 	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
 
-	return handlers.LoggingHandler(log.StandardLogger().Writer(), router)
+	return handlers.LoggingHandler(logger, router)
 }
 
 func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {
@@ -48,7 +47,6 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 		json.NewEncoder(res).Encode(
 			errorResponseFromError(
 				fmt.Errorf("Error parsing scan request: %s", err.Error())))
-
 		return
 	}
 
@@ -67,8 +65,8 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 
 func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
-	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
 
+	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
 	if err != nil {
 		switch err {
 		case scanner.ErrScanRequestIDNotFound:
@@ -82,7 +80,6 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 			res.WriteHeader(http.StatusInternalServerError)
 			json.NewEncoder(res).Encode(errorResponseFromError(err))
 		}
-
 		return
 	}
 

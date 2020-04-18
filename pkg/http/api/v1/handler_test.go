@@ -31,7 +31,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 	BeforeEach(func() {
 		controller = gomock.NewController(GinkgoT())
 		adapter = mocks.NewMockAdapter(controller)
-		handler = v1.NewAPIHandler(adapter)
+		handler = v1.NewAPIHandler(adapter, GinkgoWriter)
 	})
 
 	AfterEach(func() {
