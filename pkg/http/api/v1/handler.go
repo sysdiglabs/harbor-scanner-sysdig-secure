@@ -23,6 +23,7 @@ func NewAPIHandler(adapter scanner.Adapter, logger io.Writer) http.Handler {
 	}
 
 	router := mux.NewRouter()
+	router.Methods(http.MethodGet).Path("/health").HandlerFunc(health)
 
 	apiV1Router := router.PathPrefix("/api/v1").Subrouter()
 	apiV1Router.Methods(http.MethodGet).Path("/metadata").HandlerFunc(handler.metadata)
@@ -30,6 +31,10 @@ func NewAPIHandler(adapter scanner.Adapter, logger io.Writer) http.Handler {
 	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
 
 	return handlers.LoggingHandler(logger, router)
+}
+
+func health(res http.ResponseWriter, req *http.Request) {
+	res.WriteHeader(http.StatusOK)
 }
 
 func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {

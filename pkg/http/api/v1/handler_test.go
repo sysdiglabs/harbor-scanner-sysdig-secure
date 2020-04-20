@@ -38,6 +38,14 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 		controller.Finish()
 	})
 
+	Context("GET /health", func() {
+		It("returns OK", func() {
+			response := doGetRequest(handler, "/health")
+
+			Expect(response.StatusCode).To(Equal(http.StatusOK))
+		})
+	})
+
 	Context("GET /api/v1/metadata", func() {
 		BeforeEach(func() {
 			adapter.EXPECT().GetMetadata().Return(sysdigSecureScannerAdapterMetadata())
