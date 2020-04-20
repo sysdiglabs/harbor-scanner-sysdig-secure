@@ -26,8 +26,7 @@ var (
 			},
 		},
 		Properties: map[string]string{
-			"harbor.scanner-adapter/scanner-type":                "os-package-vulnerability",
-			"harbor.scanner-adapter/registry-authorization-type": "Bearer",
+			"harbor.scanner-adapter/scanner-type": "os-package-vulnerability",
 		},
 	}
 )
