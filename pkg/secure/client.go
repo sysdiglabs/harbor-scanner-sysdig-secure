@@ -12,6 +12,8 @@ import (
 var (
 	ErrImageNotFound              = errors.New("image not found in Sysdig Secure")
 	ErrVulnerabiltyReportNotReady = errors.New("image is being analzyed by Sysdig Secure")
+
+	ErrRegistryAlreadyExists = errors.New("registry already exists")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
@@ -19,6 +21,7 @@ type Client interface {
 	AddImage(image string, force bool) (ScanResponse, error)
 	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
 	AddRegistry(registry string, user string, password string) error
+	DeleteRegistry(registry string) error
 }
 
 func NewClient(apiToken string, secureURL string) Client {
@@ -135,6 +138,65 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	return result, nil
 }
 
+type addRegistryRequest struct {
+	Registry string `json:"registry"`
+	User     string `json:"registry_user"`
+	Password string `json:"registry_pass"`
+	Type     string `json:"registry_type"`
+	Verify   bool   `json:"registry_verify"`
+}
+
 func (s *client) AddRegistry(registry string, user string, password string) error {
-	return errors.New("Not Implemented")
+	request := addRegistryRequest{
+		Registry: registry,
+		User:     user,
+		Password: password,
+		Type:     "docker_v2",
+		Verify:   false,
+	}
+	payload, _ := json.Marshal(request)
+	response, err := s.doRequest(
+		http.MethodPost,
+		fmt.Sprintf("/api/scanning/v1/anchore/registries?validate=%t", true),
+		payload)
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	defer response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		if err.Error() == "registry already exists in DB" {
+			return ErrRegistryAlreadyExists
+		}
+		return err
+	}
+
+	return nil
+}
+
+func (s *client) DeleteRegistry(registry string) error {
+	response, err := s.doRequest(
+		http.MethodDelete,
+		fmt.Sprintf("/api/scanning/v1/anchore/registries/%s", registry),
+		nil)
+	if err != nil {
+		return err
+	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	defer response.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		return err
+	}
+
+	return nil
 }

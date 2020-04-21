@@ -76,3 +76,17 @@ func (mr *MockClientMockRecorder) AddRegistry(registry, user, password interface
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddRegistry", reflect.TypeOf((*MockClient)(nil).AddRegistry), registry, user, password)
 }
+
+// DeleteRegistry mocks base method
+func (m *MockClient) DeleteRegistry(registry string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteRegistry", registry)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteRegistry indicates an expected call of DeleteRegistry
+func (mr *MockClientMockRecorder) DeleteRegistry(registry interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRegistry", reflect.TypeOf((*MockClient)(nil).DeleteRegistry), registry)
+}
