@@ -27,6 +27,17 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           image: "{{ .Values.image.repository }}:{{ .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SECURE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "harbor-scanner-sysdig-secure.fullname" . }}
+                  key: sysdig_secure_url
+            - name: SECURE_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "harbor-scanner-sysdig-secure.fullname" . }}
+                  key: sysdig_secure_api_token
           ports:
             - name: http
               containerPort: 5000
