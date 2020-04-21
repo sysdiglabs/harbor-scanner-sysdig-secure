@@ -42,7 +42,7 @@ var _ = Describe("BackendAdapter", func() {
 
 	Context("when scanning an image", func() {
 		It("sends the repository and tag to Sysdig Secure", func() {
-			client.EXPECT().AddRegistry("https://harbor.sysdig-demo.zone", user, password).Return(nil)
+			client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
 
 			secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
 			client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secureResponse, nil)
@@ -52,9 +52,21 @@ var _ = Describe("BackendAdapter", func() {
 			Expect(result).To(Equal(harbor.ScanResponse{ID: imageDigest}))
 		})
 
+		Context("when registry already exists in Secure", func() {
+			It("ignores the error and queues the image", func() {
+				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(secure.ErrRegistryAlreadyExists)
+				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
+				client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secureResponse, nil)
+
+				result, _ := backendAdapter.Scan(scanRequest())
+
+				Expect(result).To(Equal(harbor.ScanResponse{ID: imageDigest}))
+			})
+		})
+
 		Context("when Secure cannot verify registry credentials", func() {
 			It("returns the error", func() {
-				client.EXPECT().AddRegistry("https://harbor.sysdig-demo.zone", user, password).Return(errSecure)
+				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(errSecure)
 
 				_, err := backendAdapter.Scan(scanRequest())
 
@@ -64,7 +76,7 @@ var _ = Describe("BackendAdapter", func() {
 
 		Context("when Secure fails to add the image to the scanning queue", func() {
 			It("returns the error", func() {
-				client.EXPECT().AddRegistry("https://harbor.sysdig-demo.zone", user, password).Return(nil)
+				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
 				client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
 
 				_, err := backendAdapter.Scan(scanRequest())

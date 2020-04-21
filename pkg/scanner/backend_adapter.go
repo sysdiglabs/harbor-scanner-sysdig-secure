@@ -50,9 +50,10 @@ func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	var result harbor.ScanResponse
 
+	registry := getRegistryFrom(req.Registry.URL)
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
-	err := s.secureClient.AddRegistry(req.Registry.URL, user, password)
-	if err != nil {
+	err := s.secureClient.AddRegistry(registry, user, password)
+	if err != nil && err != secure.ErrRegistryAlreadyExists {
 		return result, err
 	}
 
@@ -64,6 +65,10 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 
 	result.ID = response.ImageDigest
 	return result, nil
+}
+
+func getRegistryFrom(url string) string {
+	return strings.ReplaceAll(url, "https://", "")
 }
 
 func getUserAndPasswordFrom(authorization string) (string, string) {
