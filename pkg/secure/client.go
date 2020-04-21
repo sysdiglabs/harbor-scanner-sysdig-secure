@@ -18,6 +18,7 @@ var (
 type Client interface {
 	AddImage(image string, force bool) (ScanResponse, error)
 	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
+	AddRegistry(registry string, user string, password string) error
 }
 
 func NewClient(apiToken string, secureURL string) Client {
@@ -132,4 +133,8 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	}
 
 	return result, nil
+}
+
+func (s *client) AddRegistry(registry string, user string, password string) error {
+	return errors.New("Not Implemented")
 }

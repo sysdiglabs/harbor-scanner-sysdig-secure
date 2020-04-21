@@ -1,7 +1,9 @@
 package scanner
 
 import (
+	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
@@ -48,6 +50,12 @@ func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	var result harbor.ScanResponse
 
+	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
+	err := s.secureClient.AddRegistry(req.Registry.URL, user, password)
+	if err != nil {
+		return result, err
+	}
+
 	response, err := s.secureClient.AddImage(
 		fmt.Sprintf("%s:%s", req.Artifact.Repository, req.Artifact.Tag), false)
 	if err != nil {
@@ -56,6 +64,14 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 
 	result.ID = response.ImageDigest
 	return result, nil
+}
+
+func getUserAndPasswordFrom(authorization string) (string, string) {
+	payload := strings.ReplaceAll(authorization, "Basic ", "")
+	plain, _ := base64.StdEncoding.DecodeString(payload)
+	splitted := strings.Split(string(plain), ":")
+
+	return splitted[0], splitted[1]
 }
 
 func (s *backendAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.VulnerabilityReport, error) {
