@@ -45,7 +45,7 @@ var _ = Describe("BackendAdapter", func() {
 			client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
 
 			secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-			client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secureResponse, nil)
+			client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
 
 			result, _ := backendAdapter.Scan(scanRequest())
 
@@ -56,7 +56,7 @@ var _ = Describe("BackendAdapter", func() {
 			It("ignores the error and queues the image", func() {
 				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(secure.ErrRegistryAlreadyExists)
 				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-				client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secureResponse, nil)
+				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
 
 				result, _ := backendAdapter.Scan(scanRequest())
 
@@ -77,7 +77,7 @@ var _ = Describe("BackendAdapter", func() {
 		Context("when Secure fails to add the image to the scanning queue", func() {
 			It("returns the error", func() {
 				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
-				client.EXPECT().AddImage("sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
+				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
 
 				_, err := backendAdapter.Scan(scanRequest())
 

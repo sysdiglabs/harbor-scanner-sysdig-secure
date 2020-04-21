@@ -58,7 +58,7 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 	}
 
 	response, err := s.secureClient.AddImage(
-		fmt.Sprintf("%s:%s", req.Artifact.Repository, req.Artifact.Tag), false)
+		fmt.Sprintf("%s/%s:%s", registry, req.Artifact.Repository, req.Artifact.Tag), false)
 	if err != nil {
 		return result, err
 	}
