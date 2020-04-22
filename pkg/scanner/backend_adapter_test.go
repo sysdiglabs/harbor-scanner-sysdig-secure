@@ -161,6 +161,11 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 
 func vulnerabilityReport() harbor.VulnerabilityReport {
 	return harbor.VulnerabilityReport{
+		Scanner: &harbor.Scanner{
+			Name:    "Sysdig Secure",
+			Vendor:  "Sysdig",
+			Version: secure.BackendVersion,
+		},
 		Vulnerabilities: []harbor.VulnerabilityItem{
 			harbor.VulnerabilityItem{
 				ID:          "CVE-2019-9948",

@@ -10,12 +10,13 @@ import (
 )
 
 var (
+	scanner = &harbor.Scanner{
+		Name:    "Sysdig Secure",
+		Vendor:  "Sysdig",
+		Version: secure.BackendVersion,
+	}
 	scannerAdapterMetadata = harbor.ScannerAdapterMetadata{
-		Scanner: &harbor.Scanner{
-			Name:    "Sysdig Secure",
-			Vendor:  "Sysdig",
-			Version: "3.2", // TODO: Query backend to get version information
-		},
+		Scanner: scanner,
 		Capabilities: []harbor.ScannerCapability{
 			{
 				ConsumesMimeTypes: []string{
@@ -95,6 +96,7 @@ func (s *backendAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.Vu
 		return result, err
 	}
 
+	result.Scanner = scanner
 	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
 		result.Vulnerabilities = append(result.Vulnerabilities, toHarborVulnerabilityItem(vulnerability))
 	}

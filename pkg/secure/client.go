@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+const (
+	BackendVersion = "3.2.2"
+)
+
 var (
 	ErrImageNotFound              = errors.New("image not found in Sysdig Secure")
 	ErrVulnerabiltyReportNotReady = errors.New("image is being analzyed by Sysdig Secure")
