@@ -48,16 +48,10 @@ func (s *client) AddImage(image string, force bool) (ScanResponse, error) {
 		"tag": image,
 	}
 	payload, _ := json.Marshal(params)
-	response, err := s.doRequest(
+	response, body, err := s.doRequest(
 		http.MethodPost,
 		fmt.Sprintf("/api/scanning/v1/anchore/images?force=%t", force),
 		payload)
-	if err != nil {
-		return emptyResult, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
 	if err != nil {
 		return emptyResult, err
 	}
@@ -73,13 +67,15 @@ func (s *client) AddImage(image string, force bool) (ScanResponse, error) {
 	return result[0], nil
 }
 
-func (s *client) doRequest(method string, url string, payload []byte) (*http.Response, error) {
+func (s *client) doRequest(method string, url string, payload []byte) (*http.Response, []byte, error) {
+	var emptyBody []byte
+
 	request, err := http.NewRequest(
 		method,
 		fmt.Sprintf("%s%s", s.secureURL, url),
 		strings.NewReader(string(payload)))
 	if err != nil {
-		return nil, err
+		return nil, emptyBody, err
 	}
 
 	request.Header.Add("Content-Type", "application/json")
@@ -87,10 +83,16 @@ func (s *client) doRequest(method string, url string, payload []byte) (*http.Res
 
 	response, err := s.client.Do(request)
 	if err != nil {
-		return nil, err
+		return nil, emptyBody, err
 	}
 
-	return response, nil
+	body, err := ioutil.ReadAll(response.Body)
+	defer response.Body.Close()
+	if err != nil {
+		return nil, emptyBody, err
+	}
+
+	return response, body, nil
 }
 
 func (s *client) checkErrorInSecureAPI(response *http.Response, body []byte) error {
@@ -108,16 +110,10 @@ func (s *client) checkErrorInSecureAPI(response *http.Response, body []byte) err
 func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, error) {
 	var result VulnerabilityReport
 
-	response, err := s.doRequest(
+	response, body, err := s.doRequest(
 		http.MethodGet,
 		fmt.Sprintf("/api/scanning/v1/anchore/images/%s/vuln/all", shaDigest),
 		nil)
-	if err != nil {
-		return result, err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
 	if err != nil {
 		return result, err
 	}
@@ -159,17 +155,11 @@ func (s *client) AddRegistry(registry string, user string, password string) erro
 		Verify:   false,
 	}
 	payload, _ := json.Marshal(request)
-	response, err := s.doRequest(
+	response, body, err := s.doRequest(
 		http.MethodPost,
 		// We don't validate credentials provided by Harbor, we assume they are valid
 		fmt.Sprintf("/api/scanning/v1/anchore/registries?validate=%t", false),
 		payload)
-	if err != nil {
-		return err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
 	if err != nil {
 		return err
 	}
@@ -182,16 +172,10 @@ func (s *client) AddRegistry(registry string, user string, password string) erro
 }
 
 func (s *client) DeleteRegistry(registry string) error {
-	response, err := s.doRequest(
+	response, body, err := s.doRequest(
 		http.MethodDelete,
 		fmt.Sprintf("/api/scanning/v1/anchore/registries/%s", registry),
 		nil)
-	if err != nil {
-		return err
-	}
-
-	body, err := ioutil.ReadAll(response.Body)
-	defer response.Body.Close()
 	if err != nil {
 		return err
 	}
