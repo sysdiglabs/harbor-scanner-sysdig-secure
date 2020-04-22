@@ -17,7 +17,7 @@ var (
 	ErrImageNotFound              = errors.New("image not found in Sysdig Secure")
 	ErrVulnerabiltyReportNotReady = errors.New("image is being analzyed by Sysdig Secure")
 
-	ErrRegistryAlreadyExists = errors.New("registry already exists")
+	ErrRegistryAlreadyExists = errors.New("registry already exists in DB")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
@@ -161,7 +161,8 @@ func (s *client) AddRegistry(registry string, user string, password string) erro
 	payload, _ := json.Marshal(request)
 	response, err := s.doRequest(
 		http.MethodPost,
-		fmt.Sprintf("/api/scanning/v1/anchore/registries?validate=%t", true),
+		// We don't validate credentials provided by Harbor, we assume they are valid
+		fmt.Sprintf("/api/scanning/v1/anchore/registries?validate=%t", false),
 		payload)
 	if err != nil {
 		return err
@@ -174,9 +175,6 @@ func (s *client) AddRegistry(registry string, user string, password string) erro
 	}
 
 	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		if err.Error() == "registry already exists in DB" {
-			return ErrRegistryAlreadyExists
-		}
 		return err
 	}
 

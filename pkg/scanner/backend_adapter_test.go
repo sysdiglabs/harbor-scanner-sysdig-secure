@@ -64,16 +64,6 @@ var _ = Describe("BackendAdapter", func() {
 			})
 		})
 
-		Context("when Secure cannot verify registry credentials", func() {
-			It("returns the error", func() {
-				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(errSecure)
-
-				_, err := backendAdapter.Scan(scanRequest())
-
-				Expect(err).To(MatchError(errSecure))
-			})
-		})
-
 		Context("when Secure fails to add the image to the scanning queue", func() {
 			It("returns the error", func() {
 				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
