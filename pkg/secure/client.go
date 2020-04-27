@@ -166,6 +166,9 @@ func (s *client) AddRegistry(registry string, user string, password string) erro
 	}
 
 	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		if err.Error() == "registry already exists in DB" {
+			return ErrRegistryAlreadyExists
+		}
 		return err
 	}
 

@@ -55,6 +55,7 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
 	err := s.secureClient.AddRegistry(registry, user, password)
 	if err != nil && err != secure.ErrRegistryAlreadyExists {
+		// TODO: is this way the better to check against secure.ErrVulnerabiltyReportNotReady ?
 		return result, err
 	}
 
