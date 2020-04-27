@@ -12,9 +12,9 @@ const (
 )
 
 type Scanner struct {
-	Name    string `json:"name,omitempty"`
-	Vendor  string `json:"vendor,omitempty"`
-	Version string `json:"version,omitempty"`
+	Name    string `json:"name"`
+	Vendor  string `json:"vendor"`
+	Version string `json:"version"`
 }
 type ScannerCapability struct {
 	ConsumesMimeTypes []string `json:"consumes_mime_types"`
@@ -24,19 +24,19 @@ type ScannerCapability struct {
 type ScannerAdapterMetadata struct {
 	Scanner      *Scanner            `json:"scanner"`
 	Capabilities []ScannerCapability `json:"capabilities"`
-	Properties   map[string]string   `json:"properties,omitempty"`
+	Properties   map[string]string   `json:"properties"`
 }
 
 type Registry struct {
-	URL           string `json:"url,omitempty"`
-	Authorization string `json:"authorization,omitempty"`
+	URL           string `json:"url"`
+	Authorization string `json:"authorization"`
 }
 
 type Artifact struct {
-	Repository string `json:"repository,omitempty"`
-	Digest     string `json:"digest,omitempty"`
-	Tag        string `json:"tag,omitempty"`
-	MimeType   string `json:"mime_type,omitempty"`
+	Repository string `json:"repository"`
+	Digest     string `json:"digest"`
+	Tag        string `json:"tag"`
+	MimeType   string `json:"mime_type"`
 }
 
 type ScanRequest struct {
@@ -45,11 +45,11 @@ type ScanRequest struct {
 }
 
 type ModelError struct {
-	Message string `json:"message,omitempty"`
+	Message string `json:"message"`
 }
 
 type ErrorResponse struct {
-	Error *ModelError `json:"error,omitempty"`
+	Error *ModelError `json:"error"`
 }
 
 type ScanResponse struct {
@@ -57,11 +57,11 @@ type ScanResponse struct {
 }
 
 type VulnerabilityReport struct {
-	GeneratedAt     time.Time           `json:"generated_at,omitempty"`
-	Artifact        *Artifact           `json:"artifact,omitempty"`
-	Scanner         *Scanner            `json:"scanner,omitempty"`
-	Severity        *Severity           `json:"severity,omitempty"`
-	Vulnerabilities []VulnerabilityItem `json:"vulnerabilities,omitempty"`
+	GeneratedAt     time.Time           `json:"generated_at"`
+	Artifact        *Artifact           `json:"artifact"`
+	Scanner         *Scanner            `json:"scanner"`
+	Severity        *Severity           `json:"severity"`
+	Vulnerabilities []VulnerabilityItem `json:"vulnerabilities"`
 }
 
 type Severity string
@@ -76,11 +76,11 @@ const (
 )
 
 type VulnerabilityItem struct {
-	ID          string   `json:"id,omitempty"`
-	Package     string   `json:"package,omitempty"`
-	Version     string   `json:"version,omitempty"`
-	FixVersion  string   `json:"fix_version,omitempty"`
-	Severity    Severity `json:"severity,omitempty"`
-	Description string   `json:"description,omitempty"`
-	Links       []string `json:"links,omitempty"`
+	ID          string   `json:"id"`
+	Package     string   `json:"package"`
+	Version     string   `json:"version"`
+	FixVersion  string   `json:"fix_version"`
+	Severity    Severity `json:"severity"`
+	Description string   `json:"description"`
+	Links       []string `json:"links"`
 }
