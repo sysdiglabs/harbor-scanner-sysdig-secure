@@ -86,7 +86,7 @@ func createScanResponseID(repository string, shaDigest string) string {
 
 func (s *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
 	var result harbor.VulnerabilityReport
-	_, shaDigest := parseScanResponseID(scanResponseID)
+	repository, shaDigest := parseScanResponseID(scanResponseID)
 
 	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(shaDigest)
 	if err != nil {
@@ -99,6 +99,20 @@ func (s *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.V
 		}
 
 		return result, err
+	}
+
+	scanResponse, _ := s.secureClient.GetImage(shaDigest)
+	for _, imageDetail := range scanResponse.ImageDetail {
+		if imageDetail.Repository == repository {
+			result.GeneratedAt = imageDetail.CreatedAt
+			result.Artifact = &harbor.Artifact{
+				Repository: imageDetail.Repository,
+				Digest:     imageDetail.Digest,
+				Tag:        imageDetail.Tag,
+				MimeType:   harbor.DockerDistributionManifestMimeType,
+			}
+			break
+		}
 	}
 
 	result.Scanner = scanner

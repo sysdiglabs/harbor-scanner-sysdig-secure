@@ -17,6 +17,7 @@ type ScanResponse struct {
 type ImageContent struct {
 	Metadata *Metadata `json:"metadata"`
 }
+
 type Metadata struct {
 	Arch           string `json:"arch"`
 	Distro         string `json:"distro"`
@@ -35,8 +36,13 @@ type ImageDetail struct {
 	ImageID     string    `json:"imageId"`
 	LastUpdated time.Time `json:"last_updated"`
 	Registry    string    `json:"registry"`
-	Repo        string    `json:"repo"`
+	Repository  string    `json:"repo"`
 	UserID      string    `json:"userId"`
+	// TODO: I have some doubts about if these fields should be right here or
+	// create a new value for GetImage operations
+	Digest        string    `json:"digest"`
+	Tag           string    `json:"tag"`
+	TagDetectedAt time.Time `json:"tag_detected_at"`
 }
 
 type ErrorResponse struct {

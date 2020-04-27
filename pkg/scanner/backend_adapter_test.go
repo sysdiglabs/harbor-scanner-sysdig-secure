@@ -2,6 +2,7 @@ package scanner_test
 
 import (
 	"errors"
+	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -22,6 +23,7 @@ const (
 
 var (
 	errSecure = errors.New("an error from Sysdig Secure")
+	createdAt = time.Now()
 )
 
 var _ = Describe("BackendAdapter", func() {
@@ -80,6 +82,7 @@ var _ = Describe("BackendAdapter", func() {
 	Context("when getting the vulnerability report for an image", func() {
 		It("queries Secure for the vulnerability list", func() {
 			client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
+			client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
 
 			result, _ := backendAdapter.GetVulnerabilityReport(scanID)
 
@@ -133,6 +136,19 @@ func scanRequest() harbor.ScanRequest {
 	}
 }
 
+func scanResponse() secure.ScanResponse {
+	return secure.ScanResponse{
+		ImageDetail: []*secure.ImageDetail{
+			&secure.ImageDetail{
+				CreatedAt:  createdAt,
+				Repository: "sysdig/agent",
+				Digest:     imageDigest,
+				Tag:        "9.7.0",
+			},
+		},
+	}
+}
+
 func secureVulnerabilityReport() secure.VulnerabilityReport {
 	return secure.VulnerabilityReport{
 		ImageDigest:       imageDigest,
@@ -152,10 +168,17 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 
 func vulnerabilityReport() harbor.VulnerabilityReport {
 	return harbor.VulnerabilityReport{
+		GeneratedAt: createdAt,
 		Scanner: &harbor.Scanner{
 			Name:    "Sysdig Secure",
 			Vendor:  "Sysdig",
 			Version: secure.BackendVersion,
+		},
+		Artifact: &harbor.Artifact{
+			Repository: "sysdig/agent",
+			Digest:     imageDigest,
+			Tag:        "9.7.0",
+			MimeType:   harbor.DockerDistributionManifestMimeType,
 		},
 		Vulnerabilities: []harbor.VulnerabilityItem{
 			harbor.VulnerabilityItem{
