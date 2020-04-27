@@ -95,47 +95,18 @@ func createScanResponseID(repository string, shaDigest string) string {
 }
 
 func (s *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
-	var result harbor.VulnerabilityReport
+	result := harbor.VulnerabilityReport{
+		Scanner:  scanner,
+		Severity: harbor.UNKNOWN,
+	}
+
 	repository, shaDigest := parseScanResponseID(scanResponseID)
 
-	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(shaDigest)
-	if err != nil {
-		if err == secure.ErrImageNotFound {
-			return result, ErrScanRequestIDNotFound
-		}
-
-		if err == secure.ErrVulnerabiltyReportNotReady {
-			return result, ErrVulnerabiltyReportNotReady
-		}
-
-		return result, err
+	if err := s.fillVulnerabilities(shaDigest, &result); err != nil {
+		return harbor.VulnerabilityReport{}, err
 	}
 
-	scanResponse, _ := s.secureClient.GetImage(shaDigest)
-	for _, imageDetail := range scanResponse.ImageDetail {
-		if imageDetail.Repository == repository {
-			result.GeneratedAt = imageDetail.CreatedAt
-			result.Artifact = &harbor.Artifact{
-				Repository: imageDetail.Repository,
-				Digest:     imageDetail.Digest,
-				Tag:        imageDetail.Tag,
-				MimeType:   harbor.DockerDistributionManifestMimeType,
-			}
-			break
-		}
-	}
-
-	result.Scanner = scanner
-	result.Severity = harbor.UNKNOWN
-
-	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
-		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability)
-		result.Vulnerabilities = append(result.Vulnerabilities, vulnerabilityItem)
-
-		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
-			result.Severity = vulnerabilityItem.Severity
-		}
-	}
+	s.fillArtifact(repository, shaDigest, &result)
 
 	return result, nil
 }
@@ -147,6 +118,29 @@ func parseScanResponseID(scanResponseID string) (string, string) {
 	return splitted[0], splitted[1]
 }
 
+func (s *backendAdapter) fillVulnerabilities(shaDigest string, result *harbor.VulnerabilityReport) error {
+	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(shaDigest)
+	if err != nil {
+		switch err {
+		case secure.ErrImageNotFound:
+			return ErrScanRequestIDNotFound
+		case secure.ErrVulnerabiltyReportNotReady:
+			return ErrVulnerabiltyReportNotReady
+		}
+		return err
+	}
+
+	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
+		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability)
+		result.Vulnerabilities = append(result.Vulnerabilities, vulnerabilityItem)
+
+		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
+			result.Severity = vulnerabilityItem.Severity
+		}
+	}
+	return nil
+}
+
 func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability) harbor.VulnerabilityItem {
 	return harbor.VulnerabilityItem{
 		ID:         vulnerability.Vuln,
@@ -155,5 +149,22 @@ func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability) harbor.Vulne
 		FixVersion: vulnerability.Fix,
 		Severity:   harbor.Severity(vulnerability.Severity),
 		Links:      []string{vulnerability.URL},
+	}
+}
+
+func (s *backendAdapter) fillArtifact(repository string, shaDigest string, result *harbor.VulnerabilityReport) {
+	scanResponse, _ := s.secureClient.GetImage(shaDigest)
+
+	for _, imageDetail := range scanResponse.ImageDetail {
+		if imageDetail.Repository == repository {
+			result.GeneratedAt = imageDetail.CreatedAt
+			result.Artifact = &harbor.Artifact{
+				Repository: imageDetail.Repository,
+				Digest:     imageDetail.Digest,
+				Tag:        imageDetail.Tag,
+				MimeType:   harbor.DockerDistributionManifestMimeType,
+			}
+			return
+		}
 	}
 }
