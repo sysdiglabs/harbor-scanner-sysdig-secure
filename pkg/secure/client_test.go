@@ -87,4 +87,20 @@ var _ = Describe("Sysdig Secure Client", func() {
 			})
 		})
 	})
+
+	Context("when getting an image information", func() {
+		It("returns the image information", func() {
+			image, _ := client.GetImage("sha256:de78803598bc4c940fc4591d412bffe488205d5d953f94751c6308deeaaa7eb8")
+
+			Expect(image).NotTo(Equal(secure.ScanResponse{}))
+		})
+
+		Context("when image does not exist", func() {
+			It("returns ErrImageNotFound", func() {
+				_, err := client.GetImage("sha256:non-existent")
+
+				Expect(err).To(MatchError(secure.ErrImageNotFound))
+			})
+		})
+	})
 })

@@ -63,6 +63,21 @@ func (mr *MockClientMockRecorder) GetVulnerabilities(shaDigest interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilities", reflect.TypeOf((*MockClient)(nil).GetVulnerabilities), shaDigest)
 }
 
+// GetImage mocks base method
+func (m *MockClient) GetImage(shaDigest string) (secure.ScanResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImage", shaDigest)
+	ret0, _ := ret[0].(secure.ScanResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImage indicates an expected call of GetImage
+func (mr *MockClientMockRecorder) GetImage(shaDigest interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImage", reflect.TypeOf((*MockClient)(nil).GetImage), shaDigest)
+}
+
 // AddRegistry mocks base method
 func (m *MockClient) AddRegistry(registry, user, password string) error {
 	m.ctrl.T.Helper()

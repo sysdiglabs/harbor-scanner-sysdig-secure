@@ -24,6 +24,7 @@ var (
 type Client interface {
 	AddImage(image string, force bool) (ScanResponse, error)
 	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
+	GetImage(shaDigest string) (ScanResponse, error)
 	AddRegistry(registry string, user string, password string) error
 	DeleteRegistry(registry string) error
 }
@@ -185,4 +186,30 @@ func (s *client) DeleteRegistry(registry string) error {
 	}
 
 	return nil
+}
+
+func (s *client) GetImage(shaDigest string) (ScanResponse, error) {
+	var emptyResult ScanResponse
+
+	response, body, err := s.doRequest(
+		http.MethodGet,
+		fmt.Sprintf("/api/scanning/v1/anchore/images/%s", shaDigest),
+		nil)
+	if err != nil {
+		return emptyResult, err
+	}
+
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		if err.Error() == "image not found in DB" {
+			return emptyResult, ErrImageNotFound
+		}
+		return emptyResult, err
+	}
+
+	var result []ScanResponse
+	if err = json.Unmarshal(body, &result); err != nil {
+		return emptyResult, err
+	}
+
+	return result[0], nil
 }
