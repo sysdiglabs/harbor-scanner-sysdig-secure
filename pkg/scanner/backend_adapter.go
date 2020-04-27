@@ -32,6 +32,15 @@ var (
 			"harbor.scanner-adapter/scanner-type": "os-package-vulnerability",
 		},
 	}
+
+	severities = map[harbor.Severity]int{
+		harbor.UNKNOWN:    0,
+		harbor.NEGLIGIBLE: 1,
+		harbor.LOW:        2,
+		harbor.MEDIUM:     3,
+		harbor.HIGH:       4,
+		harbor.CRITICAL:   5,
+	}
 )
 
 type backendAdapter struct {
@@ -117,8 +126,15 @@ func (s *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.V
 	}
 
 	result.Scanner = scanner
+	result.Severity = harbor.UNKNOWN
+
 	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
-		result.Vulnerabilities = append(result.Vulnerabilities, toHarborVulnerabilityItem(vulnerability))
+		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability)
+		result.Vulnerabilities = append(result.Vulnerabilities, vulnerabilityItem)
+
+		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
+			result.Severity = vulnerabilityItem.Severity
+		}
 	}
 
 	return result, nil

@@ -162,6 +162,14 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 				Severity:       "Critical",
 				URL:            "https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
 			},
+			&secure.Vulnerability{
+				Vuln:           "CVE-2019-9946",
+				PackageName:    "Python",
+				PackageVersion: "2.7.16",
+				Fix:            "None",
+				Severity:       "High",
+				URL:            "https://nvd.nist.gov/vuln/detail/CVE-2019-9946",
+			},
 		},
 	}
 }
@@ -169,6 +177,7 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 func vulnerabilityReport() harbor.VulnerabilityReport {
 	return harbor.VulnerabilityReport{
 		GeneratedAt: createdAt,
+		Severity:    harbor.CRITICAL,
 		Scanner: &harbor.Scanner{
 			Name:    "Sysdig Secure",
 			Vendor:  "Sysdig",
@@ -190,6 +199,17 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 				Description: "",
 				Links: []string{
 					"https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
+				},
+			},
+			harbor.VulnerabilityItem{
+				ID:          "CVE-2019-9946",
+				Package:     "Python",
+				Version:     "2.7.16",
+				FixVersion:  "None",
+				Severity:    harbor.HIGH,
+				Description: "",
+				Links: []string{
+					"https://nvd.nist.gov/vuln/detail/CVE-2019-9946",
 				},
 			},
 		},

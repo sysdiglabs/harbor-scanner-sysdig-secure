@@ -60,7 +60,7 @@ type VulnerabilityReport struct {
 	GeneratedAt     time.Time           `json:"generated_at,omitempty"`
 	Artifact        *Artifact           `json:"artifact,omitempty"`
 	Scanner         *Scanner            `json:"scanner,omitempty"`
-	Severity        *Severity           `json:"severity,omitempty"`
+	Severity        Severity            `json:"severity,omitempty"`
 	Vulnerabilities []VulnerabilityItem `json:"vulnerabilities,omitempty"`
 }
 
