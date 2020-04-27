@@ -64,7 +64,7 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 		return result, err
 	}
 
-	result.ID = response.ImageDigest
+	result.ID = createScanResponseID(req.Artifact.Repository, response.ImageDigest)
 	return result, nil
 }
 
@@ -80,10 +80,15 @@ func getUserAndPasswordFrom(authorization string) (string, string) {
 	return splitted[0], splitted[1]
 }
 
-func (s *backendAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.VulnerabilityReport, error) {
-	var result harbor.VulnerabilityReport
+func createScanResponseID(repository string, shaDigest string) string {
+	return base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s|%s", repository, shaDigest)))
+}
 
-	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(scanRequestID)
+func (s *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
+	var result harbor.VulnerabilityReport
+	_, shaDigest := parseScanResponseID(scanResponseID)
+
+	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(shaDigest)
 	if err != nil {
 		if err == secure.ErrImageNotFound {
 			return result, ErrScanRequestIDNotFound
@@ -102,6 +107,13 @@ func (s *backendAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.Vu
 	}
 
 	return result, nil
+}
+
+func parseScanResponseID(scanResponseID string) (string, string) {
+	plain, _ := base64.URLEncoding.DecodeString(scanResponseID)
+	splitted := strings.Split(string(plain), "|")
+
+	return splitted[0], splitted[1]
 }
 
 func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability) harbor.VulnerabilityItem {

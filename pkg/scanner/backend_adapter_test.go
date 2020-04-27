@@ -15,6 +15,7 @@ import (
 
 const (
 	imageDigest = "an image digest"
+	scanID      = "c3lzZGlnL2FnZW50fGFuIGltYWdlIGRpZ2VzdA=="
 	user        = "robot$9f6711d1-834d-11ea-867f-76103d08dca8"
 	password    = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTAwMDk5OTksImlhdCI6MTU4NzQxNzk5OSwiaXNzIjoiaGFyYm9yLXRva2VuLWRlZmF1bHRJc3N1ZXIiLCJpZCI6OSwicGlkIjoyLCJhY2Nlc3MiOlt7IlJlc291cmNlIjoiL3Byb2plY3QvMi9yZXBvc2l0b3J5IiwiQWN0aW9uIjoic2Nhbm5lci1wdWxsIiwiRWZmZWN0IjoiIn1dfQ.A3_aTzvxqSTvl26pQKa97ay15zRPC9K55NE0WbEyOsY3m0KFz-HuSDatncWLSYvOlcGVdysKlF3JXYWIjQ7tEI4V76WA9UMoi-fr9vEEdWLF5C1uWZJOz_S72sQ3G1BzsLp3HyWe9ZN5EBK9mhXzYNv2rONYrr0UJeBmNnMf2mU3sH71OO_G6JvRl5fwFSLSYx8nQs82PhfVhx50wRuWl_zyeCCDy_ytLzjRBvZwKuI9iVIxgM1pRfKG15NWMHfl0lcYnjm7f1_WFGKtVddkLOTICK0_FPtef1L8A16ozo_2NA32WD9PstdcTuD37XbZ6AFXUAZFoZLfCEW97mtIZBY2uYMwDQtc6Nme4o3Ya-MnBEIAs9Vi9d5a4pkf7Two-xjI-9ESgVz79YqL-_OnecQPNJ9yAFtJuxQ7StfsCIZx84hh5VdcZmW9jlezRHh4hTAjsNmrOBFTAjPyaXk98Se3Fj0Ev3bChod63og4frE7_fE7HnoBKVPHRAdBhJ2yrAiPymfij_kD4ke1Vb0AxmGGOwRP2K3TZNqEdKcq89lU6lHYV2UfrWchuF3u4ieNEC1BGu1_m_c55f0YZH1FAq6evCyA0JnFuXzO4cCxC7WHzXXRGSC9Lm3LF7cbaZAgFj5d34gbgUQmJst8nPlpW-KtwRL-pHC6mipunCBv9bU"
 )
@@ -49,7 +50,7 @@ var _ = Describe("BackendAdapter", func() {
 
 			result, _ := backendAdapter.Scan(scanRequest())
 
-			Expect(result).To(Equal(harbor.ScanResponse{ID: imageDigest}))
+			Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 		})
 
 		Context("when registry already exists in Secure", func() {
@@ -60,7 +61,7 @@ var _ = Describe("BackendAdapter", func() {
 
 				result, _ := backendAdapter.Scan(scanRequest())
 
-				Expect(result).To(Equal(harbor.ScanResponse{ID: imageDigest}))
+				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 			})
 		})
 
@@ -80,7 +81,7 @@ var _ = Describe("BackendAdapter", func() {
 		It("queries Secure for the vulnerability list", func() {
 			client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
 
-			result, _ := backendAdapter.GetVulnerabilityReport(imageDigest)
+			result, _ := backendAdapter.GetVulnerabilityReport(scanID)
 
 			Expect(result).To(Equal(vulnerabilityReport()))
 		})
@@ -90,7 +91,7 @@ var _ = Describe("BackendAdapter", func() {
 				It("returns a ScanRequestID Not Found Error", func() {
 					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
 
-					_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
+					_, err := backendAdapter.GetVulnerabilityReport(scanID)
 
 					Expect(err).To(MatchError(scanner.ErrScanRequestIDNotFound))
 				})
@@ -100,7 +101,7 @@ var _ = Describe("BackendAdapter", func() {
 				It("returns a VulnerabilityReport is not Ready Error", func() {
 					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrVulnerabiltyReportNotReady)
 
-					_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
+					_, err := backendAdapter.GetVulnerabilityReport(scanID)
 
 					Expect(err).To(MatchError(scanner.ErrVulnerabiltyReportNotReady))
 				})
@@ -109,7 +110,7 @@ var _ = Describe("BackendAdapter", func() {
 			It("returns the error", func() {
 				client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
 
-				_, err := backendAdapter.GetVulnerabilityReport(imageDigest)
+				_, err := backendAdapter.GetVulnerabilityReport(scanID)
 
 				Expect(err).To(MatchError(errSecure))
 			})

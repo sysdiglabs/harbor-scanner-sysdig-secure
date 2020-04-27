@@ -15,5 +15,5 @@ var (
 type Adapter interface {
 	GetMetadata() harbor.ScannerAdapterMetadata
 	Scan(req harbor.ScanRequest) (harbor.ScanResponse, error)
-	GetVulnerabilityReport(scanRequestID string) (harbor.VulnerabilityReport, error)
+	GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error)
 }
