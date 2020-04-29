@@ -215,6 +215,12 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 				Expect(response.Header.Get("Refresh-After")).To(Equal("120"))
 			})
+
+			It("returns the Location header with the URL to check", func() {
+				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+
+				Expect(response.Header.Get("Location")).To(Equal("/api/v1/scan/scan-request-id/report"))
+			})
 		})
 
 		Context("when other unexpected errors happen", func() {

@@ -79,6 +79,7 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 			json.NewEncoder(res).Encode(errorResponseFromError(err))
 		case scanner.ErrVulnerabiltyReportNotReady:
 			res.Header().Set("Refresh-After", "120")
+			res.Header().Set("Location", req.URL.String())
 			res.WriteHeader(http.StatusFound)
 		default:
 			res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
