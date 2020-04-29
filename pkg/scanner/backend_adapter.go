@@ -15,6 +15,7 @@ var (
 		Vendor:  "Sysdig",
 		Version: secure.BackendVersion,
 	}
+
 	scannerAdapterMetadata = harbor.ScannerAdapterMetadata{
 		Scanner: scanner,
 		Capabilities: []harbor.ScannerCapability{
