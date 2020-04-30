@@ -59,24 +59,22 @@ func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 }
 
 func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
-	var result harbor.ScanResponse
-
 	registry := getRegistryFrom(req.Registry.URL)
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
 	err := s.secureClient.AddRegistry(registry, user, password)
 	if err != nil && err != secure.ErrRegistryAlreadyExists {
-		// TODO: is this way the better to check against secure.ErrVulnerabiltyReportNotReady ?
-		return result, err
+		return harbor.ScanResponse{}, err
 	}
 
 	response, err := s.secureClient.AddImage(
 		fmt.Sprintf("%s/%s:%s", registry, req.Artifact.Repository, req.Artifact.Tag), false)
 	if err != nil {
-		return result, err
+		return harbor.ScanResponse{}, err
 	}
 
-	result.ID = createScanResponseID(req.Artifact.Repository, response.ImageDigest)
-	return result, nil
+	return harbor.ScanResponse{
+		ID: createScanResponseID(req.Artifact.Repository, response.ImageDigest),
+	}, nil
 }
 
 func getRegistryFrom(url string) string {

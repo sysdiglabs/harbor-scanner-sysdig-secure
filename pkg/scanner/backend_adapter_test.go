@@ -129,9 +129,9 @@ func scanRequest() harbor.ScanRequest {
 		},
 		Artifact: &harbor.Artifact{
 			Repository: "sysdig/agent",
-			//Digest:     "",
-			Tag:      "9.7.0",
-			MimeType: "application/vnd.docker.distribution.manifest.v2+json",
+			Digest:     imageDigest,
+			Tag:        "9.7.0",
+			MimeType:   "application/vnd.docker.distribution.manifest.v2+json",
 		},
 	}
 }
