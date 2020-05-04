@@ -23,9 +23,12 @@ var (
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Client interface {
 	AddImage(image string, force bool) (ScanResponse, error)
-	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
 	GetImage(shaDigest string) (ScanResponse, error)
+
+	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
+
 	AddRegistry(registry string, user string, password string) error
+	UpdateRegistry(registry string, user string, password string) error
 	DeleteRegistry(registry string) error
 }
 
@@ -139,7 +142,7 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	return result, nil
 }
 
-type addRegistryRequest struct {
+type registryRequest struct {
 	Registry string `json:"registry"`
 	User     string `json:"registry_user"`
 	Password string `json:"registry_pass"`
@@ -148,7 +151,7 @@ type addRegistryRequest struct {
 }
 
 func (s *client) AddRegistry(registry string, user string, password string) error {
-	request := addRegistryRequest{
+	request := registryRequest{
 		Registry: registry,
 		User:     user,
 		Password: password,
@@ -172,6 +175,29 @@ func (s *client) AddRegistry(registry string, user string, password string) erro
 		return err
 	}
 
+	return nil
+}
+
+func (s *client) UpdateRegistry(registry string, user string, password string) error {
+	request := registryRequest{
+		Registry: registry,
+		User:     user,
+		Password: password,
+		Type:     "docker_v2",
+		Verify:   false,
+	}
+	payload, _ := json.Marshal(request)
+	response, body, err := s.doRequest(
+		http.MethodPut,
+		fmt.Sprintf("/api/scanning/v1/anchore/registries/registry/%s?validate=%t", registry, false),
+		payload)
+	if err != nil {
+		return err
+	}
+
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		return err
+	}
 	return nil
 }
 

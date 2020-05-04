@@ -88,6 +88,25 @@ var _ = Describe("Sysdig Secure Client", func() {
 		})
 	})
 
+	Context("when updating registry credentials", func() {
+		It("updates an existing registry", func() {
+			client.AddRegistry("foo.sysdig-demo.zone", user, password)
+			defer client.DeleteRegistry("foo.sysdig-demo.zone")
+
+			err := client.UpdateRegistry("foo.sysdig-demo.zone", "otherUser", "otherPassword")
+
+			Expect(err).To(Succeed())
+		})
+
+		Context("when registry does not exist", func() {
+			It("returns the error", func() {
+				err := client.UpdateRegistry("foo.sysdig-demo.zone", user, password)
+
+				Expect(err).To(MatchError(HavePrefix("unknown error (status 404): ")))
+			})
+		})
+	})
+
 	Context("when getting an image information", func() {
 		It("returns the image information", func() {
 			image, _ := client.GetImage("sha256:de78803598bc4c940fc4591d412bffe488205d5d953f94751c6308deeaaa7eb8")

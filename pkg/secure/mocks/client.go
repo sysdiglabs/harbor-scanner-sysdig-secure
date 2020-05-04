@@ -48,21 +48,6 @@ func (mr *MockClientMockRecorder) AddImage(image, force interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddImage", reflect.TypeOf((*MockClient)(nil).AddImage), image, force)
 }
 
-// GetVulnerabilities mocks base method
-func (m *MockClient) GetVulnerabilities(shaDigest string) (secure.VulnerabilityReport, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVulnerabilities", shaDigest)
-	ret0, _ := ret[0].(secure.VulnerabilityReport)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetVulnerabilities indicates an expected call of GetVulnerabilities
-func (mr *MockClientMockRecorder) GetVulnerabilities(shaDigest interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilities", reflect.TypeOf((*MockClient)(nil).GetVulnerabilities), shaDigest)
-}
-
 // GetImage mocks base method
 func (m *MockClient) GetImage(shaDigest string) (secure.ScanResponse, error) {
 	m.ctrl.T.Helper()
@@ -78,6 +63,21 @@ func (mr *MockClientMockRecorder) GetImage(shaDigest interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImage", reflect.TypeOf((*MockClient)(nil).GetImage), shaDigest)
 }
 
+// GetVulnerabilities mocks base method
+func (m *MockClient) GetVulnerabilities(shaDigest string) (secure.VulnerabilityReport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVulnerabilities", shaDigest)
+	ret0, _ := ret[0].(secure.VulnerabilityReport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVulnerabilities indicates an expected call of GetVulnerabilities
+func (mr *MockClientMockRecorder) GetVulnerabilities(shaDigest interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilities", reflect.TypeOf((*MockClient)(nil).GetVulnerabilities), shaDigest)
+}
+
 // AddRegistry mocks base method
 func (m *MockClient) AddRegistry(registry, user, password string) error {
 	m.ctrl.T.Helper()
@@ -90,6 +90,20 @@ func (m *MockClient) AddRegistry(registry, user, password string) error {
 func (mr *MockClientMockRecorder) AddRegistry(registry, user, password interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddRegistry", reflect.TypeOf((*MockClient)(nil).AddRegistry), registry, user, password)
+}
+
+// UpdateRegistry mocks base method
+func (m *MockClient) UpdateRegistry(registry, user, password string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRegistry", registry, user, password)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRegistry indicates an expected call of UpdateRegistry
+func (mr *MockClientMockRecorder) UpdateRegistry(registry, user, password interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRegistry", reflect.TypeOf((*MockClient)(nil).UpdateRegistry), registry, user, password)
 }
 
 // DeleteRegistry mocks base method

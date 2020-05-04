@@ -63,16 +63,16 @@ func (mr *MockAdapterMockRecorder) Scan(req interface{}) *gomock.Call {
 }
 
 // GetVulnerabilityReport mocks base method
-func (m *MockAdapter) GetVulnerabilityReport(scanRequestID string) (harbor.VulnerabilityReport, error) {
+func (m *MockAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVulnerabilityReport", scanRequestID)
+	ret := m.ctrl.Call(m, "GetVulnerabilityReport", scanResponseID)
 	ret0, _ := ret[0].(harbor.VulnerabilityReport)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetVulnerabilityReport indicates an expected call of GetVulnerabilityReport
-func (mr *MockAdapterMockRecorder) GetVulnerabilityReport(scanRequestID interface{}) *gomock.Call {
+func (mr *MockAdapterMockRecorder) GetVulnerabilityReport(scanResponseID interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilityReport", reflect.TypeOf((*MockAdapter)(nil).GetVulnerabilityReport), scanRequestID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilityReport", reflect.TypeOf((*MockAdapter)(nil).GetVulnerabilityReport), scanResponseID)
 }
