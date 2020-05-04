@@ -39,7 +39,7 @@ func (s *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error
 }
 
 func (s *inlineAdapter) createSecretFrom(req harbor.ScanRequest) error {
-	registry := getRegistryFrom(req.Registry.URL)
+	registry := getRegistryFrom(req)
 	credentials := strings.ReplaceAll(req.Registry.Authorization, "Basic ", "")
 	payload := fmt.Sprintf(`{"auths": {"%s": { "auth": "%s" }}}`, registry, credentials)
 

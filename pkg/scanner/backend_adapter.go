@@ -59,15 +59,11 @@ func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 }
 
 func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
-	registry := getRegistryFrom(req.Registry.URL)
-	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
-	err := s.secureClient.AddRegistry(registry, user, password)
-	if err != nil && err != secure.ErrRegistryAlreadyExists {
+	if err := s.setupCredentials(req); err != nil {
 		return harbor.ScanResponse{}, err
 	}
 
-	response, err := s.secureClient.AddImage(
-		fmt.Sprintf("%s/%s:%s", registry, req.Artifact.Repository, req.Artifact.Tag), false)
+	response, err := s.secureClient.AddImage(getImageFrom(req), false)
 	if err != nil {
 		return harbor.ScanResponse{}, err
 	}
@@ -77,8 +73,24 @@ func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 	}, nil
 }
 
-func getRegistryFrom(url string) string {
-	return strings.ReplaceAll(url, "https://", "")
+func (s *backendAdapter) setupCredentials(req harbor.ScanRequest) error {
+	registry := getRegistryFrom(req)
+	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
+
+	if err := s.secureClient.AddRegistry(registry, user, password); err != nil {
+		if err != secure.ErrRegistryAlreadyExists {
+			return err
+		}
+
+		if err = s.secureClient.UpdateRegistry(registry, user, password); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func getRegistryFrom(req harbor.ScanRequest) string {
+	return strings.ReplaceAll(req.Registry.URL, "https://", "")
 }
 
 func getUserAndPasswordFrom(authorization string) (string, string) {
@@ -87,6 +99,10 @@ func getUserAndPasswordFrom(authorization string) (string, string) {
 	splitted := strings.Split(string(plain), ":")
 
 	return splitted[0], splitted[1]
+}
+
+func getImageFrom(req harbor.ScanRequest) string {
+	return fmt.Sprintf("%s/%s:%s", getRegistryFrom(req), req.Artifact.Repository, req.Artifact.Tag)
 }
 
 func createScanResponseID(repository string, shaDigest string) string {
