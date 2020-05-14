@@ -325,7 +325,7 @@ func harborErrorResponseFor(message string) harbor.ErrorResponse {
 func vulnerabilityReport() harbor.VulnerabilityReport {
 	return harbor.VulnerabilityReport{
 		Vulnerabilities: []harbor.VulnerabilityItem{
-			harbor.VulnerabilityItem{
+			{
 				ID:          "CVE-2019-9948",
 				Package:     "Python",
 				Version:     "2.7.16",

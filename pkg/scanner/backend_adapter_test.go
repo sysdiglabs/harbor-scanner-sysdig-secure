@@ -140,7 +140,7 @@ func scanRequest() harbor.ScanRequest {
 func scanResponse() secure.ScanResponse {
 	return secure.ScanResponse{
 		ImageDetail: []*secure.ImageDetail{
-			&secure.ImageDetail{
+			{
 				CreatedAt:  createdAt,
 				Repository: "sysdig/agent",
 				Digest:     imageDigest,
@@ -155,7 +155,7 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 		ImageDigest:       imageDigest,
 		VulnerabilityType: "all",
 		Vulnerabilities: []*secure.Vulnerability{
-			&secure.Vulnerability{
+			{
 				Vuln:           "CVE-2019-9948",
 				PackageName:    "Python",
 				PackageVersion: "2.7.16",
@@ -163,7 +163,7 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 				Severity:       "Critical",
 				URL:            "https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
 			},
-			&secure.Vulnerability{
+			{
 				Vuln:           "CVE-2019-9946",
 				PackageName:    "Python",
 				PackageVersion: "2.7.16",
@@ -191,7 +191,7 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 			MimeType:   harbor.DockerDistributionManifestMimeType,
 		},
 		Vulnerabilities: []harbor.VulnerabilityItem{
-			harbor.VulnerabilityItem{
+			{
 				ID:          "CVE-2019-9948",
 				Package:     "Python",
 				Version:     "2.7.16",
@@ -202,7 +202,7 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 					"https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
 				},
 			},
-			harbor.VulnerabilityItem{
+			{
 				ID:          "CVE-2019-9946",
 				Package:     "Python",
 				Version:     "2.7.16",
