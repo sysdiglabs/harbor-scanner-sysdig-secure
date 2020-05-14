@@ -55,10 +55,9 @@ var _ = Describe("InlineAdapter", func() {
 		It("creates the namespace where jobs are going to be triggered", func() {
 			inlineAdapter.Scan(scanRequest())
 
-			result, err := k8sClient.CoreV1().Namespaces().Get(context.Background(), namespace, v1.GetOptions{})
+			result, _ := k8sClient.CoreV1().Namespaces().Get(context.Background(), namespace, v1.GetOptions{})
 
 			Expect(result.Name).To(Equal(namespace))
-			Expect(err).To(Succeed())
 		})
 
 		It("creates a secret with the authentication data within namespace", func() {
@@ -68,6 +67,14 @@ var _ = Describe("InlineAdapter", func() {
 
 			Expect(storedUser).To(Equal(user))
 			Expect(storedPassword).To(Equal(password))
+		})
+
+		It("schedules the scanning job within namespace", func() {
+			inlineAdapter.Scan(scanRequest())
+
+			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, v1.GetOptions{})
+
+			Expect(result.Name).To(Equal(resourceName))
 		})
 	})
 })

@@ -6,7 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -35,6 +36,7 @@ func (s *inlineAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 func (s *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	s.createNamespace()
 	s.createSecretFrom(req)
+	s.createJobFrom(req)
 
 	return harbor.ScanResponse{
 		ID: createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
@@ -42,7 +44,7 @@ func (s *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error
 }
 
 func (s *inlineAdapter) createNamespace() error {
-	namespace := v1.Namespace{
+	namespace := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.namespace,
 		},
@@ -64,13 +66,13 @@ func (s *inlineAdapter) createSecretFrom(req harbor.ScanRequest) error {
 	return err
 }
 
-func buildSecret(req harbor.ScanRequest) v1.Secret {
+func buildSecret(req harbor.ScanRequest) corev1.Secret {
 	name := fmt.Sprintf(
 		"inline-scan-demo-%s",
 		createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
 	)
 
-	return v1.Secret{
+	return corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -85,6 +87,30 @@ func dockerCredentialsFrom(req harbor.ScanRequest) []byte {
 	credentials := strings.ReplaceAll(req.Registry.Authorization, "Basic ", "")
 
 	return []byte(fmt.Sprintf(`{"auths": {"%s": { "auth": "%s" }}}`, registry, credentials))
+}
+
+func (s *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
+	job := buildJob(req)
+
+	_, err := s.k8sClient.BatchV1().Jobs(s.namespace).Create(
+		context.Background(),
+		&job,
+		metav1.CreateOptions{})
+
+	return err
+}
+
+func buildJob(req harbor.ScanRequest) batchv1.Job {
+	name := fmt.Sprintf(
+		"inline-scan-demo-%s",
+		createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
+	)
+
+	return batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
 }
 
 func (s *inlineAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
