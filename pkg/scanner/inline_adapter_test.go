@@ -21,6 +21,10 @@ import (
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure/mocks"
 )
 
+const (
+	namespace = "a-namespace"
+)
+
 var _ = Describe("InlineAdapter", func() {
 	var (
 		controller    *gomock.Controller
@@ -33,7 +37,7 @@ var _ = Describe("InlineAdapter", func() {
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
 		k8sClient = fake.NewSimpleClientset()
-		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient)
+		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, namespace)
 	})
 
 	AfterEach(func() {
@@ -47,10 +51,19 @@ var _ = Describe("InlineAdapter", func() {
 			Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 		})
 
-		It("creates a secret with the authentication data", func() {
+		It("creates the namespace where jobs are going to be triggered", func() {
 			inlineAdapter.Scan(scanRequest())
 
-			storedUser, storedPassword := getUserAndPasswordFromSecret(k8sClient, "inline-scan-demo")
+			result, err := k8sClient.CoreV1().Namespaces().Get(context.Background(), namespace, v1.GetOptions{})
+
+			Expect(result.Name).To(Equal(namespace))
+			Expect(err).To(Succeed())
+		})
+
+		It("creates a secret with the authentication data within namespace", func() {
+			inlineAdapter.Scan(scanRequest())
+
+			storedUser, storedPassword := getUserAndPasswordFromSecret(k8sClient, namespace, "inline-scan-demo")
 
 			Expect(storedUser).To(Equal(user))
 			Expect(storedPassword).To(Equal(password))
@@ -58,8 +71,8 @@ var _ = Describe("InlineAdapter", func() {
 	})
 })
 
-func getUserAndPasswordFromSecret(k8sClient kubernetes.Interface, name string) (string, string) {
-	secret, _ := k8sClient.CoreV1().Secrets("default").Get(context.Background(), name, v1.GetOptions{})
+func getUserAndPasswordFromSecret(k8sClient kubernetes.Interface, namespace string, name string) (string, string) {
+	secret, _ := k8sClient.CoreV1().Secrets(namespace).Get(context.Background(), name, v1.GetOptions{})
 
 	var parsed map[string]interface{}
 	json.Unmarshal(secret.Data["config.json"], &parsed)

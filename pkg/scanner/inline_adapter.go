@@ -17,12 +17,14 @@ import (
 type inlineAdapter struct {
 	secureClient secure.Client
 	k8sClient    kubernetes.Interface
+	namespace    string
 }
 
-func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface) Adapter {
+func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, namespace string) Adapter {
 	return &inlineAdapter{
 		secureClient: secureClient,
 		k8sClient:    k8sClient,
+		namespace:    namespace,
 	}
 }
 
@@ -31,11 +33,24 @@ func (s *inlineAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 }
 
 func (s *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
+	s.createNamespace()
 	s.createSecretFrom(req)
 
 	return harbor.ScanResponse{
 		ID: createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
 	}, nil
+}
+
+func (s *inlineAdapter) createNamespace() error {
+	namespace := v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: s.namespace,
+		},
+	}
+
+	_, err := s.k8sClient.CoreV1().Namespaces().Create(context.Background(), &namespace, metav1.CreateOptions{})
+
+	return err
 }
 
 func (s *inlineAdapter) createSecretFrom(req harbor.ScanRequest) error {
@@ -51,7 +66,7 @@ func (s *inlineAdapter) createSecretFrom(req harbor.ScanRequest) error {
 			"config.json": []byte(payload),
 		},
 	}
-	_, err := s.k8sClient.CoreV1().Secrets("default").Create(context.Background(), &secret, metav1.CreateOptions{})
+	_, err := s.k8sClient.CoreV1().Secrets(s.namespace).Create(context.Background(), &secret, metav1.CreateOptions{})
 
 	return err
 }
