@@ -58,3 +58,6 @@ sysdig:
   secure:
     apiToken: ""
     url: "https://secure.sysdig.com"
+
+harbor:
+  CA: ""
