@@ -192,7 +192,13 @@ func buildJob(req harbor.ScanRequest) *batchv1.Job {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "harbor-certificate",
+										Name: "harbor-scanner-sysdig-secure",
+									},
+									Items: []corev1.KeyToPath{
+										{
+											Key:  "harbor_ca",
+											Path: "ca.crt",
+										},
 									},
 								},
 							},
