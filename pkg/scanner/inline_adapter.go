@@ -34,7 +34,6 @@ func (s *inlineAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 }
 
 func (s *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
-	s.createNamespace()
 	s.createSecretFrom(req)
 	s.createJobFrom(req)
 

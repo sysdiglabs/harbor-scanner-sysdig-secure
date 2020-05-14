@@ -54,14 +54,6 @@ var _ = Describe("InlineAdapter", func() {
 			Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 		})
 
-		It("creates the namespace where jobs are going to be triggered", func() {
-			inlineAdapter.Scan(scanRequest())
-
-			result, _ := k8sClient.CoreV1().Namespaces().Get(context.Background(), namespace, metav1.GetOptions{})
-
-			Expect(result.Name).To(Equal(namespace))
-		})
-
 		It("creates a secret with the authentication data within namespace", func() {
 			inlineAdapter.Scan(scanRequest())
 
