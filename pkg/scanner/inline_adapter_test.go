@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	namespace = "a-namespace"
+	namespace    = "a-namespace"
+	resourceName = "inline-scan-demo-c3lzZGlnL2FnZW50fGFuIGltYWdlIGRpZ2VzdA=="
 )
 
 var _ = Describe("InlineAdapter", func() {
@@ -63,7 +64,7 @@ var _ = Describe("InlineAdapter", func() {
 		It("creates a secret with the authentication data within namespace", func() {
 			inlineAdapter.Scan(scanRequest())
 
-			storedUser, storedPassword := getUserAndPasswordFromSecret(k8sClient, namespace, "inline-scan-demo")
+			storedUser, storedPassword := getUserAndPasswordFromSecret(k8sClient, namespace, resourceName)
 
 			Expect(storedUser).To(Equal(user))
 			Expect(storedPassword).To(Equal(password))
