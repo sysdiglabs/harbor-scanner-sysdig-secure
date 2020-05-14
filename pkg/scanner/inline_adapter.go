@@ -94,19 +94,19 @@ func (s *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 
 	_, err := s.k8sClient.BatchV1().Jobs(s.namespace).Create(
 		context.Background(),
-		&job,
+		job,
 		metav1.CreateOptions{})
 
 	return err
 }
 
-func buildJob(req harbor.ScanRequest) batchv1.Job {
+func buildJob(req harbor.ScanRequest) *batchv1.Job {
 	name := fmt.Sprintf(
 		"inline-scan-demo-%s",
 		createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
 	)
 
-	return batchv1.Job{
+	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
