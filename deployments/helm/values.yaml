@@ -21,6 +21,9 @@ serviceAccount:
   # If not set and create is true, a name is generated using the fullname template
   name:
 
+rbac:
+  create: true
+
 podSecurityContext: {}
   # fsGroup: 2000
 
@@ -58,6 +61,7 @@ sysdig:
   secure:
     apiToken: ""
     url: "https://secure.sysdig.com"
+    inlineScanning: false
 
 harbor:
   CA: ""

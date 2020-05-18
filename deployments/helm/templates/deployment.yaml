@@ -38,6 +38,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "harbor-scanner-sysdig-secure.fullname" . }}
                   key: sysdig_secure_api_token
+            {{- if .Values.sysdig.secure.inlineScanning }}
+            - name: INLINE_SCANNING
+              value: "yes"
+            {{- end }}
           ports:
             - name: http
               containerPort: 5000
