@@ -160,7 +160,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 		})
 	})
 
-	Context("POST /api/v1/scan/{scan_request_id}/report", func() {
+	Context("GET /api/v1/scan/{scan_request_id}/report", func() {
 		It("returns OK", func() {
 			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
 
