@@ -7,4 +7,4 @@ metadata:
 data:
   sysdig_secure_url: {{ .Values.sysdig.secure.url }}
   harbor_ca: |
-{{ .Values.harbor.CA | indent 4}}
+{{ .Values.inlineScanning.harbor.CA | indent 4}}

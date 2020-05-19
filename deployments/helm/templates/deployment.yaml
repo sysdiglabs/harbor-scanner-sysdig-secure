@@ -38,7 +38,7 @@ spec:
                 secretKeyRef:
                   name: {{ include "harbor-scanner-sysdig-secure.fullname" . }}
                   key: sysdig_secure_api_token
-            {{- if .Values.sysdig.secure.inlineScanning }}
+            {{- if .Values.inlineScanning.enabled }}
             - name: INLINE_SCANNING
               value: "yes"
             {{- end }}

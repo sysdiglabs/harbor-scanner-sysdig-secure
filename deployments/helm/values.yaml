@@ -61,7 +61,11 @@ sysdig:
   secure:
     apiToken: ""
     url: "https://secure.sysdig.com"
-    inlineScanning: false
 
-harbor:
-  CA: ""
+inlineScanning:
+  enabled: false
+  harbor:
+    CA: ""
+    robotAccount:
+      name: ""
+      password: ""
