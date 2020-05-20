@@ -25,7 +25,7 @@ import (
 
 const (
 	namespace    = "a-namespace"
-	resourceName = "inline-scan-demo-c3lzZGlnL2FnZW50fGFuIGltYWdlIGRpZ2VzdA=="
+	resourceName = "inline-scan-d3892b65b81bb8b7cac3cc346f7aec8b"
 )
 
 var _ = Describe("InlineAdapter", func() {
@@ -52,15 +52,6 @@ var _ = Describe("InlineAdapter", func() {
 			result, _ := inlineAdapter.Scan(scanRequest())
 
 			Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
-		})
-
-		It("creates a secret with the authentication data within namespace", func() {
-			inlineAdapter.Scan(scanRequest())
-
-			storedUser, storedPassword := getUserAndPasswordFromSecret(k8sClient, namespace, resourceName)
-
-			Expect(storedUser).To(Equal(user))
-			Expect(storedPassword).To(Equal(password))
 		})
 
 		It("schedules the scanning job within namespace", func() {
@@ -95,6 +86,7 @@ func job() *batchv1.Job {
 		Spec: batchv1.JobSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					RestartPolicy: "OnFailure",
 					InitContainers: []corev1.Container{
 						{
 							Name:  "harbor-certificate-dumper",
@@ -119,14 +111,12 @@ func job() *batchv1.Job {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:  "scanner",
-							Image: "sysdiglabs/secure-inline-scan",
+							Name:    "scanner",
+							Image:   "sysdiglabs/secure-inline-scan",
+							Command: []string{"/bin/bash"},
 							Args: []string{
-								"analyze",
-								"-k",
-								"$SYSDIG_SECURE_API_TOKEN",
-								"-P",
-								"sysdig/agent:9.7.0",
+								"-c",
+								"docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -k '$(SYSDIG_SECURE_API_TOKEN)' -P harbor.sysdig-demo.zone/sysdig/agent:9.7.0 || true )",
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -140,15 +130,33 @@ func job() *batchv1.Job {
 										},
 									},
 								},
+								{
+									Name: "HARBOR_ROBOTACCOUNT_USER",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "harbor-scanner-sysdig-secure",
+											},
+											Key: "harbor_robot_account_name",
+										},
+									},
+								},
+								{
+									Name: "HARBOR_ROBOTACCOUNT_PASSWORD",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "harbor-scanner-sysdig-secure",
+											},
+											Key: "harbor_robot_account_password",
+										},
+									},
+								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "docker-daemon",
 									MountPath: "/var/run/docker.sock",
-								},
-								{
-									Name:      "docker-login",
-									MountPath: "/root/.docker",
 								},
 							},
 						},
@@ -183,14 +191,6 @@ func job() *batchv1.Job {
 											Path: "ca.crt",
 										},
 									},
-								},
-							},
-						},
-						{
-							Name: "docker-login",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: resourceName,
 								},
 							},
 						},

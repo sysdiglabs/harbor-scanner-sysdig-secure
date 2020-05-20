@@ -2,9 +2,8 @@ package scanner
 
 import (
 	"context"
-	"errors"
+	"crypto/md5"
 	"fmt"
-	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -34,62 +33,17 @@ func (s *inlineAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 }
 
 func (s *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
-	s.createSecretFrom(req)
-	s.createJobFrom(req)
+	if err := s.createJobFrom(req); err != nil {
+		return harbor.ScanResponse{}, err
+	}
 
 	return harbor.ScanResponse{
 		ID: createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
 	}, nil
 }
 
-func (s *inlineAdapter) createNamespace() error {
-	namespace := corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: s.namespace,
-		},
-	}
-
-	_, err := s.k8sClient.CoreV1().Namespaces().Create(context.Background(), &namespace, metav1.CreateOptions{})
-
-	return err
-}
-
-func (s *inlineAdapter) createSecretFrom(req harbor.ScanRequest) error {
-	secret := buildSecret(req)
-
-	_, err := s.k8sClient.CoreV1().Secrets(s.namespace).Create(
-		context.Background(),
-		&secret,
-		metav1.CreateOptions{})
-
-	return err
-}
-
-func buildSecret(req harbor.ScanRequest) corev1.Secret {
-	name := fmt.Sprintf(
-		"inline-scan-demo-%s",
-		createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
-	)
-
-	return corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Data: map[string][]byte{
-			"config.json": dockerCredentialsFrom(req),
-		},
-	}
-}
-
-func dockerCredentialsFrom(req harbor.ScanRequest) []byte {
-	registry := getRegistryFrom(req)
-	credentials := strings.ReplaceAll(req.Registry.Authorization, "Basic ", "")
-
-	return []byte(fmt.Sprintf(`{"auths": {"%s": { "auth": "%s" }}}`, registry, credentials))
-}
-
 func (s *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
-	job := buildJob(req)
+	job := s.buildJob(req)
 
 	_, err := s.k8sClient.BatchV1().Jobs(s.namespace).Create(
 		context.Background(),
@@ -99,11 +53,10 @@ func (s *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 	return err
 }
 
-func buildJob(req harbor.ScanRequest) *batchv1.Job {
+func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	name := fmt.Sprintf(
-		"inline-scan-demo-%s",
-		createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
-	)
+		"inline-scan-%x",
+		md5.Sum([]byte(fmt.Sprintf("%s:%s", req.Artifact.Repository, req.Artifact.Digest))))
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -112,6 +65,7 @@ func buildJob(req harbor.ScanRequest) *batchv1.Job {
 		Spec: batchv1.JobSpec{
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
+					RestartPolicy: "OnFailure",
 					InitContainers: []corev1.Container{
 						{
 							Name:  "harbor-certificate-dumper",
@@ -136,14 +90,12 @@ func buildJob(req harbor.ScanRequest) *batchv1.Job {
 					},
 					Containers: []corev1.Container{
 						{
-							Name:  "scanner",
-							Image: "sysdiglabs/secure-inline-scan",
+							Name:    "scanner",
+							Image:   "sysdiglabs/secure-inline-scan",
+							Command: []string{"/bin/bash"},
 							Args: []string{
-								"analyze",
-								"-k",
-								"$SYSDIG_SECURE_API_TOKEN",
-								"-P",
-								fmt.Sprintf("%s:%s", req.Artifact.Repository, req.Artifact.Tag),
+								"-c",
+								fmt.Sprintf("docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -k '$(SYSDIG_SECURE_API_TOKEN)' -P %s || true )", getImageFrom(req)),
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -157,15 +109,33 @@ func buildJob(req harbor.ScanRequest) *batchv1.Job {
 										},
 									},
 								},
+								{
+									Name: "HARBOR_ROBOTACCOUNT_USER",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "harbor-scanner-sysdig-secure",
+											},
+											Key: "harbor_robot_account_name",
+										},
+									},
+								},
+								{
+									Name: "HARBOR_ROBOTACCOUNT_PASSWORD",
+									ValueFrom: &corev1.EnvVarSource{
+										SecretKeyRef: &corev1.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "harbor-scanner-sysdig-secure",
+											},
+											Key: "harbor_robot_account_password",
+										},
+									},
+								},
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "docker-daemon",
 									MountPath: "/var/run/docker.sock",
-								},
-								{
-									Name:      "docker-login",
-									MountPath: "/root/.docker",
 								},
 							},
 						},
@@ -200,14 +170,6 @@ func buildJob(req harbor.ScanRequest) *batchv1.Job {
 											Path: "ca.crt",
 										},
 									},
-								},
-							},
-						},
-						{
-							Name: "docker-login",
-							VolumeSource: corev1.VolumeSource{
-								Secret: &corev1.SecretVolumeSource{
-									SecretName: name,
 								},
 							},
 						},
