@@ -3,6 +3,7 @@ package scanner
 import (
 	"context"
 	"crypto/md5"
+	"errors"
 	"fmt"
 
 	batchv1 "k8s.io/api/batch/v1"
