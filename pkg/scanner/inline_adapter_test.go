@@ -25,6 +25,8 @@ import (
 
 const (
 	namespace    = "a-namespace"
+	configMap    = "a-configmap"
+	secret       = "a-secret"
 	resourceName = "inline-scan-d3892b65b81bb8b7cac3cc346f7aec8b"
 )
 
@@ -40,7 +42,7 @@ var _ = Describe("InlineAdapter", func() {
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
 		k8sClient = fake.NewSimpleClientset()
-		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, namespace)
+		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, namespace, configMap, secret)
 	})
 
 	AfterEach(func() {
@@ -124,7 +126,7 @@ func job() *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "harbor-scanner-sysdig-secure",
+												Name: secret,
 											},
 											Key: "sysdig_secure_api_token",
 										},
@@ -135,7 +137,7 @@ func job() *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "harbor-scanner-sysdig-secure",
+												Name: secret,
 											},
 											Key: "harbor_robot_account_name",
 										},
@@ -146,7 +148,7 @@ func job() *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "harbor-scanner-sysdig-secure",
+												Name: secret,
 											},
 											Key: "harbor_robot_account_password",
 										},
@@ -183,7 +185,7 @@ func job() *batchv1.Job {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "harbor-scanner-sysdig-secure",
+										Name: configMap,
 									},
 									Items: []corev1.KeyToPath{
 										{

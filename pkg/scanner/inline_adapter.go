@@ -18,13 +18,17 @@ type inlineAdapter struct {
 	secureClient secure.Client
 	k8sClient    kubernetes.Interface
 	namespace    string
+	configMap    string
+	secret       string
 }
 
-func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, namespace string) Adapter {
+func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, namespace string, configMap string, secret string) Adapter {
 	return &inlineAdapter{
 		secureClient: secureClient,
 		k8sClient:    k8sClient,
 		namespace:    namespace,
+		configMap:    configMap,
+		secret:       secret,
 	}
 }
 
@@ -103,7 +107,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "harbor-scanner-sysdig-secure",
+												Name: s.secret,
 											},
 											Key: "sysdig_secure_api_token",
 										},
@@ -114,7 +118,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "harbor-scanner-sysdig-secure",
+												Name: s.secret,
 											},
 											Key: "harbor_robot_account_name",
 										},
@@ -125,7 +129,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: "harbor-scanner-sysdig-secure",
+												Name: s.secret,
 											},
 											Key: "harbor_robot_account_password",
 										},
@@ -162,7 +166,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: "harbor-scanner-sysdig-secure",
+										Name: s.configMap,
 									},
 									Items: []corev1.KeyToPath{
 										{

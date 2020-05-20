@@ -40,7 +40,12 @@ func getAdapter() scanner.Adapter {
 		if err != nil {
 			log.Fatal(err)
 		}
-		return scanner.NewInlineAdapter(client, clientset, "harbor-scanner-sysdig-secure")
+		return scanner.NewInlineAdapter(
+			client,
+			clientset,
+			os.Getenv("NAMESPACE_NAME"),
+			os.Getenv("CONFIGMAP_NAME"),
+			os.Getenv("SECRET_NAME"))
 	}
 
 	log.Info("Using backend-scanning adapter")
