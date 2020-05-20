@@ -27,7 +27,7 @@ const (
 	namespace    = "a-namespace"
 	configMap    = "a-configmap"
 	secret       = "a-secret"
-	resourceName = "inline-scan-d3892b65b81bb8b7cac3cc346f7aec8b"
+	resourceName = "inline-scan-1e668f7cc4c27e915cfed9793808357e"
 )
 
 var _ = Describe("InlineAdapter", func() {

@@ -61,7 +61,7 @@ func (s *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	name := fmt.Sprintf(
 		"inline-scan-%x",
-		md5.Sum([]byte(fmt.Sprintf("%s:%s", req.Artifact.Repository, req.Artifact.Digest))))
+		md5.Sum([]byte(fmt.Sprintf("%s|%s", req.Artifact.Repository, req.Artifact.Digest))))
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
