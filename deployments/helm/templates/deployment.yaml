@@ -41,6 +41,12 @@ spec:
             {{- if .Values.inlineScanning.enabled }}
             - name: INLINE_SCANNING
               value: "yes"
+            - name: NAMESPACE_NAME
+              value: {{ .Release.Namespace }}
+            - name: CONFIGMAP_NAME
+              value: {{ include "harbor-scanner-sysdig-secure.fullname" . }}
+            - name: SECRET_NAME
+              value: {{ include "harbor-scanner-sysdig-secure.fullname" . }}
             {{- end }}
           ports:
             - name: http
