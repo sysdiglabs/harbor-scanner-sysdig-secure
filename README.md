@@ -1,6 +1,6 @@
 # Harbor Scanner Adapter for Sysdig Secure
 
-![CI status](https://flat.badgen.net/circleci/github/sysdiglabs/harbor-scanner-sysdig-secure?icon=circleci) ![last commit](https://flat.badgen.net/github/last-commit/sysdiglabs/harbor-scanner-sysdig-secure?icon=github) ![license](https://flat.badgen.net/github/license/sysdiglabs/harbor-scanner-sysdig-secure) ![docker pulls](https://flat.badgen.net/docker/pulls/sysdiglabs/harbor-scanner-sysdig-secure?icon=docker)
+![CI](https://github.com/sysdiglabs/harbor-scanner-sysdig-secure/workflows/CI/badge.svg) ![last commit](https://flat.badgen.net/github/last-commit/sysdiglabs/harbor-scanner-sysdig-secure?icon=github) ![license](https://flat.badgen.net/github/license/sysdiglabs/harbor-scanner-sysdig-secure) ![docker pulls](https://flat.badgen.net/docker/pulls/sysdiglabs/harbor-scanner-sysdig-secure?icon=docker)
 
 The Harbor Scanner Adapter for Sysdig Secure is a service that translates the
 Harbor scanning API into Sysdig Secure API calls and allows Harbor to use Sysdig
