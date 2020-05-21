@@ -109,7 +109,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 	Context("when getting an image information", func() {
 		It("returns the image information", func() {
-			image, _ := client.GetImage("sha256:de78803598bc4c940fc4591d412bffe488205d5d953f94751c6308deeaaa7eb8")
+			image, _ := client.GetImage("sha256:7cd23a94051e17b191b5cc5b4682ed9f3ece26b8283dc39b8a5b894462cec696")
 
 			Expect(image).NotTo(Equal(secure.ScanResponse{}))
 		})
