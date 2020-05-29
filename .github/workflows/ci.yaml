@@ -46,7 +46,7 @@ jobs:
       uses: docker/build-push-action@v1
       with:
         username: ${{ secrets.SYSDIGLABS_DOCKERHUB_USER }}
-        password: ${{ secrets.SYSDIGLABS_DOCKERHUB_PASSWORD }}
+        password: ${{ secrets.SYSDIGLABS_DOCKERHUB_TOKEN }}
         repository: sysdiglabs/harbor-scanner-sysdig-secure
         dockerfile: build/Dockerfile
         add_git_labels: true
