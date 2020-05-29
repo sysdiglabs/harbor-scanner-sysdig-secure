@@ -161,10 +161,17 @@ func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability) harbor.Vulne
 		ID:         vulnerability.Vuln,
 		Package:    vulnerability.PackageName,
 		Version:    vulnerability.PackageVersion,
-		FixVersion: vulnerability.Fix,
+		FixVersion: fixVersionFor(vulnerability),
 		Severity:   harbor.Severity(vulnerability.Severity),
 		Links:      []string{vulnerability.URL},
 	}
+}
+
+func fixVersionFor(vulnerability *secure.Vulnerability) string {
+	if vulnerability.Fix == "None" {
+		return ""
+	}
+	return vulnerability.Fix
 }
 
 func (s *backendAdapter) fillArtifact(repository string, shaDigest string, result *harbor.VulnerabilityReport) {

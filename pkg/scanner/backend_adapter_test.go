@@ -195,7 +195,7 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 				ID:          "CVE-2019-9948",
 				Package:     "Python",
 				Version:     "2.7.16",
-				FixVersion:  "None",
+				FixVersion:  "",
 				Severity:    harbor.CRITICAL,
 				Description: "",
 				Links: []string{
@@ -206,7 +206,7 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 				ID:          "CVE-2019-9946",
 				Package:     "Python",
 				Version:     "2.7.16",
-				FixVersion:  "None",
+				FixVersion:  "",
 				Severity:    harbor.HIGH,
 				Description: "",
 				Links: []string{
