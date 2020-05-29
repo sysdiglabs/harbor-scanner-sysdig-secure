@@ -50,6 +50,9 @@ jobs:
     needs: build-and-test
 
     steps:
+    - name: Check out code
+      uses: actions/checkout@v2
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v1
       with:
