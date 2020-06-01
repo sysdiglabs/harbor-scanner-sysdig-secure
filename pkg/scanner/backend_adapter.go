@@ -45,44 +45,42 @@ var (
 )
 
 type backendAdapter struct {
-	secureClient secure.Client
+	BaseAdapter
 }
 
 func NewBackendAdapter(client secure.Client) Adapter {
 	return &backendAdapter{
-		secureClient: client,
+		BaseAdapter: BaseAdapter{secureClient: client},
 	}
 }
 
-func (s *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
+func (b *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 	return scannerAdapterMetadata
 }
 
-func (s *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
-	if err := s.setupCredentials(req); err != nil {
+func (b *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
+	if err := b.setupCredentials(req); err != nil {
 		return harbor.ScanResponse{}, err
 	}
 
-	response, err := s.secureClient.AddImage(getImageFrom(req), false)
+	response, err := b.secureClient.AddImage(getImageFrom(req), false)
 	if err != nil {
 		return harbor.ScanResponse{}, err
 	}
 
-	return harbor.ScanResponse{
-		ID: createScanResponseID(req.Artifact.Repository, response.ImageDigest),
-	}, nil
+	return b.CreateScanResponse(req.Artifact.Repository, response.ImageDigest), nil
 }
 
-func (s *backendAdapter) setupCredentials(req harbor.ScanRequest) error {
+func (b *backendAdapter) setupCredentials(req harbor.ScanRequest) error {
 	registry := getRegistryFrom(req)
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
 
-	if err := s.secureClient.AddRegistry(registry, user, password); err != nil {
+	if err := b.secureClient.AddRegistry(registry, user, password); err != nil {
 		if err != secure.ErrRegistryAlreadyExists {
 			return err
 		}
 
-		if err = s.secureClient.UpdateRegistry(registry, user, password); err != nil {
+		if err = b.secureClient.UpdateRegistry(registry, user, password); err != nil {
 			return err
 		}
 	}
@@ -105,88 +103,19 @@ func getImageFrom(req harbor.ScanRequest) string {
 	return fmt.Sprintf("%s/%s:%s", getRegistryFrom(req), req.Artifact.Repository, req.Artifact.Tag)
 }
 
-func createScanResponseID(repository string, shaDigest string) string {
-	return base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s|%s", repository, shaDigest)))
-}
+func (b *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
+	repository, shaDigest := b.DecodeScanResponseID(scanResponseID)
 
-func (s *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
-	result := harbor.VulnerabilityReport{
-		Scanner:  scanner,
-		Severity: harbor.UNKNOWN,
-	}
-
-	repository, shaDigest := parseScanResponseID(scanResponseID)
-
-	if err := s.fillVulnerabilities(shaDigest, &result); err != nil {
-		return harbor.VulnerabilityReport{}, err
-	}
-
-	s.fillArtifact(repository, shaDigest, &result)
-
-	return result, nil
-}
-
-func parseScanResponseID(scanResponseID string) (string, string) {
-	plain, _ := base64.URLEncoding.DecodeString(scanResponseID)
-	splitted := strings.Split(string(plain), "|")
-
-	return splitted[0], splitted[1]
-}
-
-func (s *backendAdapter) fillVulnerabilities(shaDigest string, result *harbor.VulnerabilityReport) error {
-	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(shaDigest)
+	vulnerabilityReport, err := b.secureClient.GetVulnerabilities(shaDigest)
 	if err != nil {
 		switch err {
 		case secure.ErrImageNotFound:
-			return ErrScanRequestIDNotFound
+			return harbor.VulnerabilityReport{}, ErrScanRequestIDNotFound
 		case secure.ErrVulnerabiltyReportNotReady:
-			return ErrVulnerabiltyReportNotReady
+			return harbor.VulnerabilityReport{}, ErrVulnerabiltyReportNotReady
 		}
-		return err
+		return harbor.VulnerabilityReport{}, err
 	}
 
-	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
-		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability)
-		result.Vulnerabilities = append(result.Vulnerabilities, vulnerabilityItem)
-
-		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
-			result.Severity = vulnerabilityItem.Severity
-		}
-	}
-	return nil
-}
-
-func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability) harbor.VulnerabilityItem {
-	return harbor.VulnerabilityItem{
-		ID:         vulnerability.Vuln,
-		Package:    vulnerability.PackageName,
-		Version:    vulnerability.PackageVersion,
-		FixVersion: fixVersionFor(vulnerability),
-		Severity:   harbor.Severity(vulnerability.Severity),
-		Links:      []string{vulnerability.URL},
-	}
-}
-
-func fixVersionFor(vulnerability *secure.Vulnerability) string {
-	if vulnerability.Fix == "None" {
-		return ""
-	}
-	return vulnerability.Fix
-}
-
-func (s *backendAdapter) fillArtifact(repository string, shaDigest string, result *harbor.VulnerabilityReport) {
-	scanResponse, _ := s.secureClient.GetImage(shaDigest)
-
-	for _, imageDetail := range scanResponse.ImageDetail {
-		if imageDetail.Repository == repository {
-			result.GeneratedAt = imageDetail.CreatedAt
-			result.Artifact = &harbor.Artifact{
-				Repository: imageDetail.Repository,
-				Digest:     imageDetail.Digest,
-				Tag:        imageDetail.Tag,
-				MimeType:   harbor.DockerDistributionManifestMimeType,
-			}
-			return
-		}
-	}
+	return b.ToHarborVulnerabilityReport(repository, shaDigest, &vulnerabilityReport)
 }

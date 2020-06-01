@@ -15,41 +15,39 @@ import (
 )
 
 type inlineAdapter struct {
-	secureClient secure.Client
-	k8sClient    kubernetes.Interface
-	namespace    string
-	configMap    string
-	secret       string
+	BaseAdapter
+	k8sClient kubernetes.Interface
+	namespace string
+	configMap string
+	secret    string
 }
 
 func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, namespace string, configMap string, secret string) Adapter {
 	return &inlineAdapter{
-		secureClient: secureClient,
-		k8sClient:    k8sClient,
-		namespace:    namespace,
-		configMap:    configMap,
-		secret:       secret,
+		BaseAdapter: BaseAdapter{secureClient: secureClient},
+		k8sClient:   k8sClient,
+		namespace:   namespace,
+		configMap:   configMap,
+		secret:      secret,
 	}
 }
 
-func (s *inlineAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
+func (i *inlineAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 	return scannerAdapterMetadata
 }
 
-func (s *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
-	if err := s.createJobFrom(req); err != nil {
+func (i *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
+	if err := i.createJobFrom(req); err != nil {
 		return harbor.ScanResponse{}, err
 	}
 
-	return harbor.ScanResponse{
-		ID: createScanResponseID(req.Artifact.Repository, req.Artifact.Digest),
-	}, nil
+	return i.CreateScanResponse(req.Artifact.Repository, req.Artifact.Digest), nil
 }
 
-func (s *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
-	job := s.buildJob(req)
+func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
+	job := i.buildJob(req)
 
-	_, err := s.k8sClient.BatchV1().Jobs(s.namespace).Create(
+	_, err := i.k8sClient.BatchV1().Jobs(i.namespace).Create(
 		context.Background(),
 		job,
 		metav1.CreateOptions{})
@@ -57,7 +55,7 @@ func (s *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 	return err
 }
 
-func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
+func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	name := fmt.Sprintf(
 		"inline-scan-%x",
 		md5.Sum([]byte(fmt.Sprintf("%s|%s", req.Artifact.Repository, req.Artifact.Digest))))
@@ -107,7 +105,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: s.secret,
+												Name: i.secret,
 											},
 											Key: "sysdig_secure_api_token",
 										},
@@ -118,7 +116,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: s.secret,
+												Name: i.secret,
 											},
 											Key: "harbor_robot_account_name",
 										},
@@ -129,7 +127,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 									ValueFrom: &corev1.EnvVarSource{
 										SecretKeyRef: &corev1.SecretKeySelector{
 											LocalObjectReference: corev1.LocalObjectReference{
-												Name: s.secret,
+												Name: i.secret,
 											},
 											Key: "harbor_robot_account_password",
 										},
@@ -166,7 +164,7 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 							VolumeSource: corev1.VolumeSource{
 								ConfigMap: &corev1.ConfigMapVolumeSource{
 									LocalObjectReference: corev1.LocalObjectReference{
-										Name: s.configMap,
+										Name: i.configMap,
 									},
 									Items: []corev1.KeyToPath{
 										{
@@ -184,45 +182,13 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	}
 }
 
-func (s *inlineAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
-	repository, shaDigest := parseScanResponseID(scanResponseID)
+func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
+	repository, shaDigest := i.DecodeScanResponseID(scanResponseID)
 
-	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(shaDigest)
+	vulnerabilityReport, err := i.secureClient.GetVulnerabilities(shaDigest)
 	if err != nil {
 		return harbor.VulnerabilityReport{}, err
 	}
 
-	return s.toHarborVulnerabilityReport(repository, shaDigest, &vulnerabilityReport)
-}
-
-func (s *inlineAdapter) toHarborVulnerabilityReport(repository string, shaDigest string, vulnerabilityReport *secure.VulnerabilityReport) (harbor.VulnerabilityReport, error) {
-	result := harbor.VulnerabilityReport{
-		Scanner:  scanner,
-		Severity: harbor.UNKNOWN,
-	}
-
-	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
-		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability)
-		result.Vulnerabilities = append(result.Vulnerabilities, vulnerabilityItem)
-
-		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
-			result.Severity = vulnerabilityItem.Severity
-		}
-	}
-
-	scanResponse, _ := s.secureClient.GetImage(shaDigest)
-	for _, imageDetail := range scanResponse.ImageDetail {
-		if imageDetail.Repository == repository {
-			result.GeneratedAt = imageDetail.CreatedAt
-			result.Artifact = &harbor.Artifact{
-				Repository: imageDetail.Repository,
-				Digest:     imageDetail.Digest,
-				Tag:        imageDetail.Tag,
-				MimeType:   harbor.DockerDistributionManifestMimeType,
-			}
-			return result, nil
-		}
-	}
-
-	return result, nil
+	return i.ToHarborVulnerabilityReport(repository, shaDigest, &vulnerabilityReport)
 }
