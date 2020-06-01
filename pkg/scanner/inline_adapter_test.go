@@ -64,6 +64,17 @@ var _ = Describe("InlineAdapter", func() {
 			Expect(result).To(Equal(job()))
 		})
 	})
+
+	Context("when getting the vulnerability report for an image", func() {
+		It("queries Secure for the vulnerability list", func() {
+			client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
+			client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
+
+			result, _ := inlineAdapter.GetVulnerabilityReport(scanID)
+
+			Expect(result).To(Equal(vulnerabilityReport()))
+		})
+	})
 })
 
 func getUserAndPasswordFromSecret(k8sClient kubernetes.Interface, namespace string, name string) (string, string) {

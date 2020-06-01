@@ -3,7 +3,6 @@ package scanner
 import (
 	"context"
 	"crypto/md5"
-	"errors"
 	"fmt"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -186,5 +185,44 @@ func (s *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 }
 
 func (s *inlineAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
-	return harbor.VulnerabilityReport{}, errors.New("Not implemented")
+	repository, shaDigest := parseScanResponseID(scanResponseID)
+
+	vulnerabilityReport, err := s.secureClient.GetVulnerabilities(shaDigest)
+	if err != nil {
+		return harbor.VulnerabilityReport{}, err
+	}
+
+	return s.toHarborVulnerabilityReport(repository, shaDigest, &vulnerabilityReport)
+}
+
+func (s *inlineAdapter) toHarborVulnerabilityReport(repository string, shaDigest string, vulnerabilityReport *secure.VulnerabilityReport) (harbor.VulnerabilityReport, error) {
+	result := harbor.VulnerabilityReport{
+		Scanner:  scanner,
+		Severity: harbor.UNKNOWN,
+	}
+
+	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
+		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability)
+		result.Vulnerabilities = append(result.Vulnerabilities, vulnerabilityItem)
+
+		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
+			result.Severity = vulnerabilityItem.Severity
+		}
+	}
+
+	scanResponse, _ := s.secureClient.GetImage(shaDigest)
+	for _, imageDetail := range scanResponse.ImageDetail {
+		if imageDetail.Repository == repository {
+			result.GeneratedAt = imageDetail.CreatedAt
+			result.Artifact = &harbor.Artifact{
+				Repository: imageDetail.Repository,
+				Digest:     imageDetail.Digest,
+				Tag:        imageDetail.Tag,
+				MimeType:   harbor.DockerDistributionManifestMimeType,
+			}
+			return result, nil
+		}
+	}
+
+	return result, nil
 }
