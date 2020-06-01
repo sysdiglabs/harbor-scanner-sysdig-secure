@@ -56,9 +56,7 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 }
 
 func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
-	name := fmt.Sprintf(
-		"inline-scan-%x",
-		md5.Sum([]byte(fmt.Sprintf("%s|%s", req.Artifact.Repository, req.Artifact.Digest))))
+	name := jobName(req.Artifact.Repository, req.Artifact.Digest)
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -182,11 +180,26 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	}
 }
 
+func jobName(repository string, shaDigest string) string {
+	return fmt.Sprintf(
+		"inline-scan-%x",
+		md5.Sum([]byte(fmt.Sprintf("%s|%s", repository, shaDigest))))
+}
+
 func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
 	repository, shaDigest := i.DecodeScanResponseID(scanResponseID)
 
 	vulnerabilityReport, err := i.secureClient.GetVulnerabilities(shaDigest)
 	if err != nil {
+		if err == secure.ErrImageNotFound {
+			job, _ := i.k8sClient.BatchV1().Jobs(i.namespace).Get(context.Background(), jobName(repository, shaDigest), metav1.GetOptions{})
+			if job == nil {
+				return harbor.VulnerabilityReport{}, ErrScanRequestIDNotFound
+			}
+			if job.Status.Active != 0 {
+				return harbor.VulnerabilityReport{}, ErrVulnerabiltyReportNotReady
+			}
+		}
 		return harbor.VulnerabilityReport{}, err
 	}
 

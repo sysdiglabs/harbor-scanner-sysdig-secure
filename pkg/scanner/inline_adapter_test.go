@@ -20,6 +20,7 @@ import (
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
+	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure/mocks"
 )
 
@@ -73,6 +74,37 @@ var _ = Describe("InlineAdapter", func() {
 			result, _ := inlineAdapter.GetVulnerabilityReport(scanID)
 
 			Expect(result).To(Equal(vulnerabilityReport()))
+		})
+
+		Context("when Secure returns an error", func() {
+			Context("when Secure cannot find the image scanned and no job for image exists", func() {
+				It("returns a ScanRequestID Not Found Error", func() {
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
+
+					_, err := inlineAdapter.GetVulnerabilityReport(scanID)
+
+					Expect(err).To(MatchError(scanner.ErrScanRequestIDNotFound))
+				})
+			})
+
+			Context("when image is still being scanned", func() {
+				It("returns a VulnerabilityReport is not Ready Error", func() {
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
+					k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
+
+					_, err := inlineAdapter.GetVulnerabilityReport(scanID)
+
+					Expect(err).To(MatchError(scanner.ErrVulnerabiltyReportNotReady))
+				})
+			})
+
+			It("returns the error", func() {
+				client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
+
+				_, err := inlineAdapter.GetVulnerabilityReport(scanID)
+
+				Expect(err).To(MatchError(errSecure))
+			})
 		})
 	})
 })
@@ -212,4 +244,11 @@ func job() *batchv1.Job {
 			},
 		},
 	}
+}
+
+func activeJob() *batchv1.Job {
+	job := job()
+	job.Status.Active = 1
+
+	return job
 }
