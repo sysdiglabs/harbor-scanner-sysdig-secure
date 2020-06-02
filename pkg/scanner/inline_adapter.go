@@ -100,7 +100,7 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 							Command: []string{"/bin/bash"},
 							Args: []string{
 								"-c",
-								fmt.Sprintf("docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -k '$(SYSDIG_SECURE_API_TOKEN)' -P %s || true )", getImageFrom(req)),
+								fmt.Sprintf("docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -k '$(SYSDIG_SECURE_API_TOKEN)' -d '%s' -P %s || true )", req.Artifact.Digest, getImageFrom(req)),
 							},
 							Env: []corev1.EnvVar{
 								{

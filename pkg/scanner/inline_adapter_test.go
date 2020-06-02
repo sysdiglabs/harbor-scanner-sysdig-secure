@@ -172,7 +172,7 @@ func job() *batchv1.Job {
 							Command: []string{"/bin/bash"},
 							Args: []string{
 								"-c",
-								"docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -k '$(SYSDIG_SECURE_API_TOKEN)' -P harbor.sysdig-demo.zone/sysdig/agent:9.7.0 || true )",
+								"docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -k '$(SYSDIG_SECURE_API_TOKEN)' -d 'an image digest' -P harbor.sysdig-demo.zone/sysdig/agent:9.7.0 || true )",
 							},
 							Env: []corev1.EnvVar{
 								{
