@@ -27,6 +27,8 @@ type Client interface {
 
 	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
 
+	GetFeeds() ([]Feed, error)
+
 	AddRegistry(registry string, user string, password string) error
 	UpdateRegistry(registry string, user string, password string) error
 	DeleteRegistry(registry string) error
@@ -241,4 +243,26 @@ func (s *client) GetImage(shaDigest string) (ScanResponse, error) {
 	}
 
 	return result[0], nil
+}
+
+func (s *client) GetFeeds() ([]Feed, error) {
+	var emptyResult []Feed
+
+	response, body, err := s.doRequest(
+		http.MethodGet,
+		"/api/scanning/v1/system/feeds",
+		nil)
+	if err != nil {
+		return emptyResult, err
+	}
+
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		return emptyResult, err
+	}
+
+	var result []Feed
+	if err = json.Unmarshal(body, &result); err != nil {
+		return emptyResult, err
+	}
+	return result, nil
 }

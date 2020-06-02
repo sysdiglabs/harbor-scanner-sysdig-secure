@@ -82,3 +82,18 @@ type CSS struct {
 	ExploitabilityScore float32 `json:"exploitability_score"`
 	ImpactScore         float32 `json:"impact_score"`
 }
+
+type FeedGroup struct {
+	Name        string    `json:"name"`
+	RecordCount int       `json:"record_count"`
+	CreatedAt   time.Time `json:"created_at"`
+	LastSync    time.Time `json:"last_sync"`
+}
+
+type Feed struct {
+	Name         string      `json:"name"`
+	CreatedAt    time.Time   `json:"created_at"`
+	UpdatedAt    time.Time   `json:"updated_at"`
+	LastFullSync time.Time   `json:"last_full_sync"`
+	Groups       []FeedGroup `json:"groups"`
+}

@@ -78,6 +78,21 @@ func (mr *MockClientMockRecorder) GetVulnerabilities(shaDigest interface{}) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilities", reflect.TypeOf((*MockClient)(nil).GetVulnerabilities), shaDigest)
 }
 
+// GetFeeds mocks base method
+func (m *MockClient) GetFeeds() ([]secure.Feed, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFeeds")
+	ret0, _ := ret[0].([]secure.Feed)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFeeds indicates an expected call of GetFeeds
+func (mr *MockClientMockRecorder) GetFeeds() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFeeds", reflect.TypeOf((*MockClient)(nil).GetFeeds))
+}
+
 // AddRegistry mocks base method
 func (m *MockClient) AddRegistry(registry, user, password string) error {
 	m.ctrl.T.Helper()

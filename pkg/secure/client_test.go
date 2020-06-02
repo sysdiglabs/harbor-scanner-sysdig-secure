@@ -122,4 +122,12 @@ var _ = Describe("Sysdig Secure Client", func() {
 			})
 		})
 	})
+
+	Context("when getting the feeds", func() {
+		It("returns the feed list", func() {
+			image, _ := client.GetFeeds()
+
+			Expect(image).NotTo(Equal([]secure.Feed{}))
+		})
+	})
 })
