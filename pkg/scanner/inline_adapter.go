@@ -7,6 +7,7 @@ import (
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -52,7 +53,11 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 		job,
 		metav1.CreateOptions{})
 
-	return err
+	if !errors.IsAlreadyExists(err) {
+		return err
+	}
+
+	return nil
 }
 
 func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {

@@ -64,6 +64,17 @@ var _ = Describe("InlineAdapter", func() {
 
 			Expect(result).To(Equal(job()))
 		})
+
+		Context("a job already exists", func() {
+			It("returns the scanID for checking if scan has finished", func() {
+				k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
+
+				result, err := inlineAdapter.Scan(scanRequest())
+
+				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
+				Expect(err).To(Succeed())
+			})
+		})
 	})
 
 	Context("when getting the vulnerability report for an image", func() {
