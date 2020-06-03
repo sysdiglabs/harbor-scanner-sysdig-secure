@@ -33,10 +33,6 @@ func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface
 	}
 }
 
-func (i *inlineAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
-	return scannerAdapterMetadata
-}
-
 func (i *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	if err := i.createJobFrom(req); err != nil {
 		return harbor.ScanResponse{}, err

@@ -10,30 +10,6 @@ import (
 )
 
 var (
-	scanner = &harbor.Scanner{
-		Name:    "Sysdig Secure",
-		Vendor:  "Sysdig",
-		Version: secure.BackendVersion,
-	}
-
-	scannerAdapterMetadata = harbor.ScannerAdapterMetadata{
-		Scanner: scanner,
-		Capabilities: []harbor.ScannerCapability{
-			{
-				ConsumesMimeTypes: []string{
-					harbor.OCIImageManifestMimeType,
-					harbor.DockerDistributionManifestMimeType,
-				},
-				ProducesMimeTypes: []string{
-					harbor.ScanReportMimeType,
-				},
-			},
-		},
-		Properties: map[string]string{
-			"harbor.scanner-adapter/scanner-type": "os-package-vulnerability",
-		},
-	}
-
 	severities = map[harbor.Severity]int{
 		harbor.UNKNOWN:    0,
 		harbor.NEGLIGIBLE: 1,
@@ -52,10 +28,6 @@ func NewBackendAdapter(client secure.Client) Adapter {
 	return &backendAdapter{
 		BaseAdapter: BaseAdapter{secureClient: client},
 	}
-}
-
-func (b *backendAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
-	return scannerAdapterMetadata
 }
 
 func (b *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
