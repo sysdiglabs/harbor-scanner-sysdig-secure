@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	lastSync = time.Date(2019, time.November, 15, 23, 0, 0, 0, time.UTC)
+	lastSync          = time.Date(2019, time.November, 15, 23, 54, 05, 0, time.UTC)
+	lastSyncFormatted = "2019-11-15T23:54:05Z"
 )
 
 var _ = Describe("BaseAdapter", func() {
@@ -39,7 +40,7 @@ var _ = Describe("BaseAdapter", func() {
 
 			result, _ := baseAdapter.GetMetadata()
 
-			Expect(result.Properties["harbor.scanner-adapter/vulnerability-database-updated-at"]).To(Equal(lastSync.String()))
+			Expect(result.Properties["harbor.scanner-adapter/vulnerability-database-updated-at"]).To(Equal(lastSyncFormatted))
 		})
 
 		Context("and already have a value", func() {
@@ -49,7 +50,7 @@ var _ = Describe("BaseAdapter", func() {
 				baseAdapter.GetMetadata()
 				result, _ := baseAdapter.GetMetadata()
 
-				Expect(result.Properties["harbor.scanner-adapter/vulnerability-database-updated-at"]).To(Equal(lastSync.String()))
+				Expect(result.Properties["harbor.scanner-adapter/vulnerability-database-updated-at"]).To(Equal(lastSyncFormatted))
 			})
 		})
 

@@ -50,7 +50,7 @@ func (b *BaseAdapter) GetMetadata() (harbor.ScannerAdapterMetadata, error) {
 			},
 			Properties: map[string]string{
 				"harbor.scanner-adapter/scanner-type":                      "os-package-vulnerability",
-				"harbor.scanner-adapter/vulnerability-database-updated-at": lastSync(feeds).String(),
+				"harbor.scanner-adapter/vulnerability-database-updated-at": lastSync(feeds).Format(time.RFC3339),
 			},
 		}
 	}
