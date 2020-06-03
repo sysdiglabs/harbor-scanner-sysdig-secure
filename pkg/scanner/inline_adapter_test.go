@@ -134,12 +134,14 @@ func getUserAndPasswordFromSecret(k8sClient kubernetes.Interface, namespace stri
 }
 
 func job() *batchv1.Job {
+	jobTTL := int32(86400)
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      resourceName,
 			Namespace: namespace,
 		},
 		Spec: batchv1.JobSpec{
+			TTLSecondsAfterFinished: &jobTTL,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: "OnFailure",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +22,7 @@ type inlineAdapter struct {
 	namespace string
 	configMap string
 	secret    string
+	jobTTL    int32
 }
 
 func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, namespace string, configMap string, secret string) Adapter {
@@ -30,6 +32,7 @@ func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface
 		namespace:   namespace,
 		configMap:   configMap,
 		secret:      secret,
+		jobTTL:      int32(24 * time.Hour.Seconds()),
 	}
 }
 
@@ -64,6 +67,7 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 			Name: name,
 		},
 		Spec: batchv1.JobSpec{
+			TTLSecondsAfterFinished: &i.jobTTL,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: "OnFailure",
