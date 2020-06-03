@@ -24,7 +24,6 @@ const (
 var (
 	errSecure = errors.New("an error from Sysdig Secure")
 	createdAt = time.Now()
-	lastSync  = time.Date(2019, time.November, 15, 23, 0, 0, 0, time.UTC)
 )
 
 var _ = Describe("BackendAdapter", func() {
@@ -42,27 +41,6 @@ var _ = Describe("BackendAdapter", func() {
 
 	AfterEach(func() {
 		controller.Finish()
-	})
-
-	Context("when retrieving metadata", func() {
-		It("queries Sysdig Secure when was last time vulnerability db was updated", func() {
-			client.EXPECT().GetFeeds().Return(feeds(), nil)
-
-			result := backendAdapter.GetMetadata()
-
-			Expect(result.Properties["harbor.scanner-adapter/vulnerability-database-updated-at"]).To(Equal(lastSync.String()))
-		})
-
-		Context("and already have a value", func() {
-			It("only queries Sysdig Secure once", func() {
-				client.EXPECT().GetFeeds().Return(feeds(), nil)
-
-				backendAdapter.GetMetadata()
-				result := backendAdapter.GetMetadata()
-
-				Expect(result.Properties["harbor.scanner-adapter/vulnerability-database-updated-at"]).To(Equal(lastSync.String()))
-			})
-		})
 	})
 
 	Context("when scanning an image", func() {
@@ -143,31 +121,6 @@ var _ = Describe("BackendAdapter", func() {
 		})
 	})
 })
-
-func feeds() []secure.Feed {
-	return []secure.Feed{
-		{
-			Groups: []secure.FeedGroup{
-				{
-					LastSync: time.Date(2009, time.November, 10, 23, 0, 0, 0, time.UTC),
-				},
-				{
-					LastSync: time.Date(2009, time.November, 15, 23, 0, 0, 0, time.UTC),
-				},
-			},
-		},
-		{
-			Groups: []secure.FeedGroup{
-				{
-					LastSync: time.Date(2012, time.November, 10, 23, 0, 0, 0, time.UTC),
-				},
-				{
-					LastSync: lastSync,
-				},
-			},
-		},
-	}
-}
 
 func scanRequest() harbor.ScanRequest {
 	return harbor.ScanRequest{

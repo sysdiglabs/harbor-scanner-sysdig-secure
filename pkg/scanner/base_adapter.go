@@ -28,9 +28,12 @@ func (b *BaseAdapter) getScanner() *harbor.Scanner {
 	return b.scanner
 }
 
-func (b *BaseAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
+func (b *BaseAdapter) GetMetadata() (harbor.ScannerAdapterMetadata, error) {
 	if b.scannerAdapterMetadata == nil {
-		feeds, _ := b.secureClient.GetFeeds()
+		feeds, err := b.secureClient.GetFeeds()
+		if err != nil {
+			return harbor.ScannerAdapterMetadata{}, err
+		}
 
 		b.scannerAdapterMetadata = &harbor.ScannerAdapterMetadata{
 			Scanner: b.getScanner(),
@@ -52,7 +55,7 @@ func (b *BaseAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
 		}
 	}
 
-	return *b.scannerAdapterMetadata
+	return *b.scannerAdapterMetadata, nil
 }
 
 func lastSync(feeds []secure.Feed) time.Time {

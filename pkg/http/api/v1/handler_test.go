@@ -47,29 +47,57 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 	})
 
 	Context("GET /api/v1/metadata", func() {
-		BeforeEach(func() {
-			adapter.EXPECT().GetMetadata().Return(sysdigSecureScannerAdapterMetadata())
-		})
-
 		It("returns OK", func() {
+			adapter.EXPECT().GetMetadata().Return(sysdigSecureScannerAdapterMetadata(), nil)
+
 			response := doGetRequest(handler, "/api/v1/metadata")
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
 
 		It("returns scanner.adapter.metadata Mime Type", func() {
+			adapter.EXPECT().GetMetadata().Return(sysdigSecureScannerAdapterMetadata(), nil)
+
 			response := doGetRequest(handler, "/api/v1/metadata")
 
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.metadata+json; version=1.0"))
 		})
 
 		It("returns a valid scanner.adapter.metadata encoded as JSON", func() {
-			response := doGetRequest(handler, "/api/v1/metadata")
+			adapter.EXPECT().GetMetadata().Return(sysdigSecureScannerAdapterMetadata(), nil)
 
+			response := doGetRequest(handler, "/api/v1/metadata")
 			var result harbor.ScannerAdapterMetadata
 			json.NewDecoder(response.Body).Decode(&result)
 
 			Expect(result).To(Equal(sysdigSecureScannerAdapterMetadata()))
+		})
+
+		Context("when other unexpected errors happen", func() {
+			BeforeEach(func() {
+				adapter.EXPECT().GetMetadata().Return(harbor.ScannerAdapterMetadata{}, ErrUnexpected)
+			})
+
+			It("returns INTERNAL_SERVER_ERROR", func() {
+				response := doGetRequest(handler, "/api/v1/metadata")
+
+				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
+			})
+
+			It("returns scanner.adapter.error mime type", func() {
+				response := doGetRequest(handler, "/api/v1/metadata")
+
+				Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.error+json; version=1.0"))
+			})
+
+			It("returns a the error encoded as JSON", func() {
+				response := doGetRequest(handler, "/api/v1/metadata")
+
+				var result harbor.ErrorResponse
+				json.NewDecoder(response.Body).Decode(&result)
+
+				Expect(result).To(Equal(harborErrorResponseFor(ErrUnexpected.Error())))
+			})
 		})
 	})
 

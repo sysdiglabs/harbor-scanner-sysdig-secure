@@ -13,7 +13,7 @@ var (
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Adapter interface {
-	GetMetadata() harbor.ScannerAdapterMetadata
+	GetMetadata() (harbor.ScannerAdapterMetadata, error)
 	Scan(req harbor.ScanRequest) (harbor.ScanResponse, error)
 	GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error)
 }

@@ -38,9 +38,16 @@ func health(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {
-	res.Header().Set("Content-Type", harbor.ScannerAdapterMetadataMimeType)
+	metadata, err := h.adapter.GetMetadata()
+	if err != nil {
+		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
+		res.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(res).Encode(errorResponseFromError(err))
+		return
+	}
 
-	json.NewEncoder(res).Encode(h.adapter.GetMetadata())
+	res.Header().Set("Content-Type", harbor.ScannerAdapterMetadataMimeType)
+	json.NewEncoder(res).Encode(metadata)
 }
 
 func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {

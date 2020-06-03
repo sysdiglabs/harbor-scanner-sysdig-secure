@@ -34,11 +34,12 @@ func (m *MockAdapter) EXPECT() *MockAdapterMockRecorder {
 }
 
 // GetMetadata mocks base method
-func (m *MockAdapter) GetMetadata() harbor.ScannerAdapterMetadata {
+func (m *MockAdapter) GetMetadata() (harbor.ScannerAdapterMetadata, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMetadata")
 	ret0, _ := ret[0].(harbor.ScannerAdapterMetadata)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetMetadata indicates an expected call of GetMetadata
