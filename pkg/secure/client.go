@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	BackendVersion = "3.2.2"
+	BackendVersion = "3.x"
 )
 
 var (
