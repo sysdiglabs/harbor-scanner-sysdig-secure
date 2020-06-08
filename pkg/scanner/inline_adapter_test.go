@@ -81,6 +81,7 @@ var _ = Describe("InlineAdapter", func() {
 		It("queries Secure for the vulnerability list", func() {
 			client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
 			client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
+			client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
 
 			result, _ := inlineAdapter.GetVulnerabilityReport(scanID)
 

@@ -84,6 +84,7 @@ var _ = Describe("BackendAdapter", func() {
 		It("queries Secure for the vulnerability list", func() {
 			client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
 			client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
+			client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
 
 			result, _ := backendAdapter.GetVulnerabilityReport(scanID)
 
@@ -175,6 +176,13 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 	}
 }
 
+func vulnerabilitiesDescription() map[string]string {
+	return map[string]string{
+		"CVE-2019-9948": "Description for CVE-2019-9948",
+		"CVE-2019-9946": "Description for CVE-2019-9946",
+	}
+}
+
 func vulnerabilityReport() harbor.VulnerabilityReport {
 	return harbor.VulnerabilityReport{
 		GeneratedAt: createdAt,
@@ -197,7 +205,7 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 				Version:     "2.7.16",
 				FixVersion:  "",
 				Severity:    harbor.CRITICAL,
-				Description: "",
+				Description: "Description for CVE-2019-9948",
 				Links: []string{
 					"https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
 				},
@@ -208,7 +216,7 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 				Version:     "2.7.16",
 				FixVersion:  "",
 				Severity:    harbor.HIGH,
-				Description: "",
+				Description: "Description for CVE-2019-9946",
 				Links: []string{
 					"https://nvd.nist.gov/vuln/detail/CVE-2019-9946",
 				},

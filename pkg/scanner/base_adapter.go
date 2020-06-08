@@ -91,8 +91,10 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 		Severity: harbor.UNKNOWN,
 	}
 
+	vulnerabilitiesDescription, _ := b.getVulnerablitiesDescriptionFrom(vulnerabilityReport.Vulnerabilities)
+
 	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
-		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability)
+		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability, vulnerabilitiesDescription)
 		result.Vulnerabilities = append(result.Vulnerabilities, vulnerabilityItem)
 
 		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
@@ -117,14 +119,24 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	return result, nil
 }
 
-func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability) harbor.VulnerabilityItem {
+func (b *BaseAdapter) getVulnerablitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
+	ids := []string{}
+	for _, vulnerability := range vulnerabilities {
+		ids = append(ids, vulnerability.Vuln)
+	}
+
+	return b.secureClient.GetVulnerabilityDescription(ids...)
+}
+
+func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability, descriptions map[string]string) harbor.VulnerabilityItem {
 	return harbor.VulnerabilityItem{
-		ID:         vulnerability.Vuln,
-		Package:    vulnerability.PackageName,
-		Version:    vulnerability.PackageVersion,
-		FixVersion: fixVersionFor(vulnerability),
-		Severity:   harbor.Severity(vulnerability.Severity),
-		Links:      []string{vulnerability.URL},
+		ID:          vulnerability.Vuln,
+		Description: descriptions[vulnerability.Vuln],
+		Package:     vulnerability.PackageName,
+		Version:     vulnerability.PackageVersion,
+		FixVersion:  fixVersionFor(vulnerability),
+		Severity:    harbor.Severity(vulnerability.Severity),
+		Links:       []string{vulnerability.URL},
 	}
 }
 
