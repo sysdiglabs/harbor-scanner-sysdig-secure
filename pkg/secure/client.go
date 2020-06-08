@@ -32,6 +32,8 @@ type Client interface {
 	AddRegistry(registry string, user string, password string) error
 	UpdateRegistry(registry string, user string, password string) error
 	DeleteRegistry(registry string) error
+
+	GetVulnerabilityDescription(vulnerabilityIDs ...string) (map[string]string, error)
 }
 
 func NewClient(apiToken string, secureURL string) Client {
@@ -264,5 +266,41 @@ func (s *client) GetFeeds() ([]Feed, error) {
 	if err = json.Unmarshal(body, &result); err != nil {
 		return emptyResult, err
 	}
+	return result, nil
+}
+
+type vulnerabilityDescription struct {
+	ID          string `json:"id"`
+	Description string `json:"description"`
+}
+
+type vulnerabilityResponse struct {
+	Vulnerabilities []vulnerabilityDescription `json:"vulnerabilities"`
+}
+
+func (s *client) GetVulnerabilityDescription(vulnerabilitiesIDs ...string) (map[string]string, error) {
+	result := make(map[string]string)
+
+	response, body, err := s.doRequest(
+		http.MethodGet,
+		fmt.Sprintf("/api/scanning/v1/anchore/query/vulnerabilities?id=%s&namespace=nvdv2:cves,vulndb:vulnerabilities", strings.Join(vulnerabilitiesIDs, ",")),
+		nil)
+	if err != nil {
+		return result, err
+	}
+
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		return result, err
+	}
+
+	var res vulnerabilityResponse
+	if err = json.Unmarshal(body, &res); err != nil {
+		return result, err
+	}
+
+	for _, current := range res.Vulnerabilities {
+		result[current.ID] = current.Description
+	}
+
 	return result, nil
 }

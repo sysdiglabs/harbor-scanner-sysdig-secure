@@ -130,4 +130,14 @@ var _ = Describe("Sysdig Secure Client", func() {
 			Expect(image).NotTo(Equal([]secure.Feed{}))
 		})
 	})
+
+	Context("when retrieving vulnerabilities description", func() {
+		It("returns a map with the id as key", func() {
+			descriptions, _ := client.GetVulnerabilityDescription("CVE-2016-2779", "VULNDB-229217")
+
+			Expect(descriptions).To(HaveKeyWithValue("CVE-2016-2779", "runuser in util-linux allows local users to escape to the parent session via a crafted TIOCSTI ioctl call, which pushes characters to the terminal's input buffer."))
+
+			Expect(descriptions).To(HaveKeyWithValue("VULNDB-229217", "pip PyPI (Python Packaging Index) contains a flaw that allows traversing outside of a restricted path. The issue is due to the PipXmlrpcTransport._download_http_url() function in _internal/download.py not properly sanitizing input, specifically path traversal style attacks (e.g. '../') supplied via the HTTP Content-Disposition header when downloading a remote package. With a specially crafted server, a remote attacker can write to arbitrary files."))
+		})
+	})
 })

@@ -134,3 +134,22 @@ func (mr *MockClientMockRecorder) DeleteRegistry(registry interface{}) *gomock.C
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRegistry", reflect.TypeOf((*MockClient)(nil).DeleteRegistry), registry)
 }
+
+// GetVulnerabilityDescription mocks base method
+func (m *MockClient) GetVulnerabilityDescription(vulnerabilityIDs ...string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{}
+	for _, a := range vulnerabilityIDs {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetVulnerabilityDescription", varargs...)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVulnerabilityDescription indicates an expected call of GetVulnerabilityDescription
+func (mr *MockClientMockRecorder) GetVulnerabilityDescription(vulnerabilityIDs ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilityDescription", reflect.TypeOf((*MockClient)(nil).GetVulnerabilityDescription), vulnerabilityIDs...)
+}
