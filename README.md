@@ -25,6 +25,9 @@ These are the instructions required to get this up and running on Kubernetes.
 1. Deploy the scanner adapter using the Helm Chart:
 
 ```
+$ helm repo add sysdiglabs https://sysdiglabs.github.io/charts
+"sysdiglabs" has been added to your repositories
+
 $ kubectl create namespace harbor-scanner-sysdig-secure
 namespace/harbor-scanner-sysdig-secure created
 
@@ -53,6 +56,8 @@ You can test the connection to see if everything is fine.
 
 3. Select Sysdig Secure scanner and set it as default. You can check the
 **Default** label appears next to the scanner's name.
+
+![Set Secure as default scanner](docs/images/secure_as_default_harbor_ui.png)
 
 ## Inline and Backend Scanning
 
