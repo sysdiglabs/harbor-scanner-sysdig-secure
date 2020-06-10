@@ -11,9 +11,16 @@ This guide explains how to install Harbor Scanner Adapter for Sysdig Secure.
 
 ### Obtaining the Sysdig Secure API Token
 
+Once you have your Sysdig Secure account, you need to login and go to your
+settings. Is just below the Get Started sidebar item.
+
+![Getting Secure API Token](docs/images/getting_secure_api_token.png)
+
 ## Deploying on Kubernetes using the Helm Chart
 
-1. Deploy the scanner adapter using the Helm Chart:
+The fastest way to deploy the scanner adapter is using the Helm Chart we
+provide. Be aware that you need to provide the Sysdig Secure API token when
+you type the `helm install` command.
 
 ```
 $ helm repo add sysdiglabs https://sysdiglabs.github.io/charts
@@ -36,17 +43,21 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl --namespace harbor-scanner-sysdig-secure port-forward $POD_NAME 8080:80
 ```
 
-2. Configure the scanner adapter in the Harbor interface using the default
-service that Helm Chart creates as Endpoint URL:
+Once the Helm Chart is deployed, is time to configure Harbor to use the scanner
+adapter. You need to add it under Interrogation Services. Click on New Scanner
+button and fill the details:
+
+![Adding Sysdig Secure to Harbor Interrogation Services](docs/images/add_secure_to_harbor.png)
+
+You will use the service that Helm Chart creates as endpoint, and to make sure
+it can be reached click on Test Connection button.
 
 ```
 http://harbor-scanner-sysdig-secure.harbor-scanner-sysdig-secure:5000/
 ```
 
-You can test the connection to see if everything is fine.
-
-3. Select Sysdig Secure scanner and set it as default. You can check the
-**Default** label appears next to the scanner's name.
+Final step is to select Sysdig Secure scanner and set it as default. You can
+check the **Default** label appears next to the scanner's name.
 
 ![Set Secure as default scanner](docs/images/secure_as_default_harbor_ui.png)
 
