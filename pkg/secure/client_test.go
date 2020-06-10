@@ -48,7 +48,6 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 			Expect(response).NotTo(Equal(secure.VulnerabilityReport{}))
 			Expect(len(response.Vulnerabilities)).To(BeNumerically(">", 0))
-			Expect(len(response.Vulnerabilities[0].NVDData)).To(BeNumerically(">", 0))
 		})
 
 		Context("when an error happens", func() {
