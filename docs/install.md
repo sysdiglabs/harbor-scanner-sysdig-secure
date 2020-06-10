@@ -47,14 +47,10 @@ Once the Helm Chart is deployed, is time to configure Harbor to use the scanner
 adapter. You need to add it under Interrogation Services. Click on New Scanner
 button and fill the details:
 
+Use the service that Helm Chart creates as endpoint, and to make sure it can be
+reached click on Test Connection button.
+
 ![Adding Sysdig Secure to Harbor Interrogation Services](images/add_secure_to_harbor.png)
-
-You will use the service that Helm Chart creates as endpoint, and to make sure
-it can be reached click on Test Connection button.
-
-```
-http://harbor-scanner-sysdig-secure.harbor-scanner-sysdig-secure:5000/
-```
 
 Final step is to select Sysdig Secure scanner and set it as default. You can
 check the **Default** label appears next to the scanner's name.
