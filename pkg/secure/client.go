@@ -15,7 +15,7 @@ const (
 
 var (
 	ErrImageNotFound              = errors.New("image not found in Sysdig Secure")
-	ErrVulnerabiltyReportNotReady = errors.New("image is being analzyed by Sysdig Secure")
+	ErrVulnerabiltyReportNotReady = errors.New("image is being analyzed by Sysdig Secure")
 
 	ErrRegistryAlreadyExists = errors.New("registry already exists in DB")
 )
