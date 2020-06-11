@@ -14,13 +14,13 @@ You can follow a [detailed guide to deploy the Scanner Adapter](docs/install.md)
 
 ## Inline and Backend Scanning
 
-This scanning adapter has two operation modes: 
+This scanning adapter has two operation modes:
 * Backend Scanning: Image scanning happens in the Sysdig Secure Backend
-* Inline Scanning: Image scanning happens in the host executing Harbor
+* Inline Scanning: Image scanning happens in the infrastructure where Harbor is hosted
 
 ### Backend Scanning
 
-This is the default mode. The Sysdig Harbor adapter will forward the container image path to the Sysdig Secure backend (either SaaS or Onprem), for example `docker.io/alpine:latest`. The backend will use this path to retrieve and scan the container image, providing the results back to the Sysdig Harbor adapter. 
+This is the default mode. The Sysdig Harbor adapter will forward the container image path to the Sysdig Secure backend (either SaaS or Onprem), for example `docker.io/alpine:latest`. The backend will use this path to retrieve and scan the container image, providing the results back to the Sysdig Harbor adapter.
 
 PRO:
 * Easier to install
