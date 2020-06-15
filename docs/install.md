@@ -43,19 +43,8 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl --namespace harbor-scanner-sysdig-secure port-forward $POD_NAME 8080:80
 ```
 
-Once the Helm Chart is deployed, is time to configure Harbor to use the scanner
-adapter. You need to add it under Interrogation Services. Click on New Scanner
-button and fill the details:
-
-Use the service that Helm Chart creates as endpoint, and to make sure it can be
-reached click on Test Connection button.
-
-![Adding Sysdig Secure to Harbor Interrogation Services](images/add_secure_to_harbor.png)
-
-Final step is to select Sysdig Secure scanner and set it as default. You can
-check the **Default** label appears next to the scanner's name.
-
-![Set Secure as default scanner](images/secure_as_default_harbor_ui.png)
+And that's it. The new scanner adapter is deployed. Now is time to tell Harbor
+to use it, and you can find [how to configure Harbor to use Sysdig Secure Scanner Adapter](#configuring-harbor-to-use-sysdig-secure-scanner-adapter) a few lines below.
 
 ### Using Inline Scanning instead of Backend Scanning
 
@@ -117,5 +106,18 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl --namespace harbor-scanner-sysdig-secure port-forward $POD_NAME 8080:80
 ```
 
-And that's it. The new scanner adapter is deployed. Now is time to tell Harbor
-to use it, and you can find these instructions a few lines above.
+## Configuring Harbor to use Sysdig Secure Scanner Adapter
+
+Once the Helm Chart is deployed, is time to configure Harbor to use the scanner
+adapter. You need to add it under Interrogation Services. Click on New Scanner
+button and fill the details:
+
+Use the service that Helm Chart creates as endpoint, and to make sure it can be
+reached click on Test Connection button.
+
+![Adding Sysdig Secure to Harbor Interrogation Services](images/add_secure_to_harbor.png)
+
+Final step is to select Sysdig Secure scanner and set it as default. You can
+check the **Default** label appears next to the scanner's name.
+
+![Set Secure as default scanner](images/secure_as_default_harbor_ui.png)
