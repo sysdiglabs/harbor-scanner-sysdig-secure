@@ -103,7 +103,7 @@ $ helm repo add sysdiglabs https://sysdiglabs.github.io/charts
 $ kubectl create namespace harbor-scanner-sysdig-secure
 namespace/harbor-scanner-sysdig-secure created
 
-$ helm -n harbor-scanner-sysdig-secure install harbor-scanner-sysdig-secure -f value.yaml sysdiglabs/harbor-scanner-sysdig-secure
+$ helm -n harbor-scanner-sysdig-secure install harbor-scanner-sysdig-secure -f values.yaml sysdiglabs/harbor-scanner-sysdig-secure
 NAME: harbor-scanner-sysdig-secure
 LAST DEPLOYED: Tue Jun  9 13:38:12 2020
 NAMESPACE: harbor-scanner-sysdig-secure
