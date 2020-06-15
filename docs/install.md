@@ -85,14 +85,12 @@ so that we can go to next steps.
 Next step is about the robot account. As long as this mode uses `docker` command
 under the hoods to perform the scanning, we need to authenticate against
 the registry using `docker`, and we will do it using a robot acount. Harbor
-folks did a pretty good job documenting [how to create a robot account]
-(https://goharbor.io/docs/1.10/working-with-projects/project-configuration/create-robot-accounts/).
+folks did a pretty good job documenting [how to create a robot account](https://goharbor.io/docs/1.10/working-with-projects/project-configuration/create-robot-accounts/).
 Once you created the account, be sure you fill the values under
 `inlineScanning.harbor.robotAccount` key.
 
 Next step is to get and configure the CA certificate that Harbor uses. Again,
-Harbor folks did a great job documenting [how to download the CA certificate]
-(https://goharbor.io/docs/1.10/working-with-projects/working-with-images/pulling-pushing-images/#download-the-harbor-certificate).
+Harbor folks did a great job documenting [how to download the CA certificate](https://goharbor.io/docs/1.10/working-with-projects/working-with-images/pulling-pushing-images/#download-the-harbor-certificate).
 Once you have the certificate, ensure is under the `inlineScanning.harbor.CA` key.
 Pay attention to the `|` pipe symbol because we need to keep it raw.
 
