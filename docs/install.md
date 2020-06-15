@@ -106,6 +106,8 @@ echo "Visit http://127.0.0.1:8080 to use your application"
 kubectl --namespace harbor-scanner-sysdig-secure port-forward $POD_NAME 8080:80
 ```
 
+And once we deployed the scanner adapter, is time to tell Harbor to use it.
+
 ## Configuring Harbor to use Sysdig Secure Scanner Adapter
 
 Once the Helm Chart is deployed, is time to configure Harbor to use the scanner
