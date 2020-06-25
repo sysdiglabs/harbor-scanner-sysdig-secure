@@ -1,0 +1,42 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Extract tag name
+      id: tag
+      run: echo ::set-output name=VERSION::$(echo "${{ github.ref }}" | sed -e 's/.*\/v\(.*\)/\1/')
+
+    - name: Create release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ steps.tag.outputs.VERSION }}
+        draft: true
+        prerelease: false
+        body: |
+          This is the ${{ github.ref }} release of Harbor Scanner Adapter for Sysdig Secure ${{ steps.tag.outputs.VERSION }}
+          ### Major Changes
+          ### Minor Changes
+          ### Bug fixes
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v1
+      with:
+        username: ${{ secrets.SYSDIGLABS_DOCKERHUB_USER }}
+        password: ${{ secrets.SYSDIGLABS_DOCKERHUB_TOKEN }}
+        repository: sysdiglabs/sysdig-admission-controller
+        add_git_labels: true
+        dockerfile: build/Dockerfile
+        tags: latest, ${{ steps.tag.outputs.VERSION}
