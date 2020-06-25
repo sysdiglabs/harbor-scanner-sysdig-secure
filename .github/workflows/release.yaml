@@ -39,4 +39,4 @@ jobs:
         repository: sysdiglabs/sysdig-admission-controller
         add_git_labels: true
         dockerfile: build/Dockerfile
-        tags: latest, ${{ steps.tag.outputs.VERSION}
+        tags: latest, ${{ steps.tag.outputs.VERSION }}
