@@ -23,14 +23,16 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: ${{ steps.tag.outputs.VERSION }}
+        release_name: ${{ github.ref }}
         draft: true
         prerelease: false
         body: |
-          This is the ${{ github.ref }} release of Harbor Scanner Adapter for Sysdig Secure ${{ steps.tag.outputs.VERSION }}
+          This is the ${{ github.ref }} release of Harbor Scanner Adapter for Sysdig Secure
+
           ### Major Changes
           ### Minor Changes
           ### Bug fixes
+
     - name: Build and push Docker image
       uses: docker/build-push-action@v1
       with:
