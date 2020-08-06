@@ -60,7 +60,7 @@ var _ = Describe("BackendAdapter", func() {
 				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
 
 				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent", false).Return(secureResponse, nil)
+				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent@an image digest", false).Return(secureResponse, nil)
 
 				result, _ := backendAdapter.Scan(scanRequestWithoutTag())
 
