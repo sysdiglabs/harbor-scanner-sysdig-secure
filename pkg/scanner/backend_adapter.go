@@ -72,7 +72,12 @@ func getUserAndPasswordFrom(authorization string) (string, string) {
 }
 
 func getImageFrom(req harbor.ScanRequest) string {
-	return fmt.Sprintf("%s/%s:%s", getRegistryFrom(req), req.Artifact.Repository, req.Artifact.Tag)
+	result := fmt.Sprintf("%s/%s", getRegistryFrom(req), req.Artifact.Repository)
+	if req.Artifact.Tag != "" {
+		return result + fmt.Sprintf(":%s", req.Artifact.Tag)
+	}
+
+	return result
 }
 
 func (b *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
