@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/middleware"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
@@ -22,15 +23,21 @@ func NewAPIHandler(adapter scanner.Adapter, logger io.Writer) http.Handler {
 		adapter: adapter,
 	}
 
-	router := mux.NewRouter()
-	router.Methods(http.MethodGet).Path("/health").HandlerFunc(health)
+	// TODO: This smells
+	middleware.DefaultLogger = middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: log.New(logger, "", 0), NoColor: true})
 
-	apiV1Router := router.PathPrefix("/api/v1").Subrouter()
-	apiV1Router.Methods(http.MethodGet).Path("/metadata").HandlerFunc(handler.metadata)
-	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(handler.scan)
-	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
+	router := chi.NewRouter()
+	router.Use(middleware.Logger)
 
-	return handlers.LoggingHandler(logger, router)
+	router.Get("/health", health)
+
+	router.Route("/api/v1", func(r chi.Router) {
+		r.Get("/metadata", handler.metadata)
+		r.Post("/scan", handler.scan)
+		r.Get("/scan/{scan_request_id}/report", handler.getReport)
+	})
+
+	return router
 }
 
 func health(res http.ResponseWriter, req *http.Request) {
@@ -76,9 +83,7 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 }
 
 func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
-	vars := mux.Vars(req)
-
-	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
+	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(chi.URLParam(req, "scan_request_id"))
 	if err != nil {
 		switch err {
 		case scanner.ErrScanRequestIDNotFound:
