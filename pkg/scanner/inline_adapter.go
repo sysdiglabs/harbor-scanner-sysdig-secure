@@ -19,16 +19,18 @@ import (
 type inlineAdapter struct {
 	BaseAdapter
 	k8sClient kubernetes.Interface
+	secureURL string
 	namespace string
 	configMap string
 	secret    string
 	jobTTL    int32
 }
 
-func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, namespace string, configMap string, secret string) Adapter {
+func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL string, namespace string, configMap string, secret string) Adapter {
 	return &inlineAdapter{
 		BaseAdapter: BaseAdapter{secureClient: secureClient},
 		k8sClient:   k8sClient,
+		secureURL:   secureURL,
 		namespace:   namespace,
 		configMap:   configMap,
 		secret:      secret,
@@ -100,7 +102,7 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 							Command: []string{"/bin/bash"},
 							Args: []string{
 								"-c",
-								fmt.Sprintf("docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -k '$(SYSDIG_SECURE_API_TOKEN)' -d '%s' -P %s || true )", req.Artifact.Digest, getImageFrom(req)),
+								fmt.Sprintf("docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -s '%s' -k '$(SYSDIG_SECURE_API_TOKEN)' -d '%s' -P %s || true )", i.secureURL, req.Artifact.Digest, getImageFrom(req)),
 							},
 							Env: []corev1.EnvVar{
 								{

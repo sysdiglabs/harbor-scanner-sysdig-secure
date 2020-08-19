@@ -80,6 +80,7 @@ func getAdapter() scanner.Adapter {
 		return scanner.NewInlineAdapter(
 			client,
 			clientset,
+			viper.GetString("secure_url"),
 			viper.GetString("namespace_name"),
 			viper.GetString("configmap_name"),
 			viper.GetString("secret_name"))
