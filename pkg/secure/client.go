@@ -1,6 +1,7 @@
 package secure
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -36,10 +37,17 @@ type Client interface {
 	GetVulnerabilityDescription(vulnerabilityIDs ...string) (map[string]string, error)
 }
 
-func NewClient(apiToken string, secureURL string) Client {
+func NewClient(apiToken string, secureURL string, verifySSL bool) Client {
 	return &client{
 		apiToken:  apiToken,
 		secureURL: secureURL,
+		client: http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: verifySSL,
+				},
+			},
+		},
 	}
 }
 

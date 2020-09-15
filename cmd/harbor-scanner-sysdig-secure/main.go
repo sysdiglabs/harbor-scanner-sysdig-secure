@@ -43,6 +43,7 @@ func configure() error {
 
 	pflag.String("secure_api_token", "", "Sysdig Secure API Token")
 	pflag.String("secure_url", "https://secure.sysdig.com", "Sysdig Secure URL Endpoint")
+	pflag.Bool("verify_ssl", true, "Verify SSL when connecting to Sysdig Secure URL Endpoint")
 	pflag.Bool("inline_scanning", false, "Use Inline Scanning Adapter")
 	pflag.String("namespace_name", "", "Namespace where inline scanning jobs are spawned")
 	pflag.String("configmap_name", "", "Configmap which keeps the inline scanning settings")
@@ -64,7 +65,7 @@ func configure() error {
 }
 
 func getAdapter() scanner.Adapter {
-	client := secure.NewClient(viper.GetString("secure_api_token"), viper.GetString("secure_url"))
+	client := secure.NewClient(viper.GetString("secure_api_token"), viper.GetString("secure_url"), viper.GetBool("verify_ssl"))
 
 	if viper.GetBool("inline_scanning") {
 		log.Info("Using inline-scanning adapter")

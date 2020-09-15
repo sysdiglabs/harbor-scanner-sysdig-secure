@@ -20,7 +20,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 	)
 
 	BeforeEach(func() {
-		client = secure.NewClient(os.Getenv("SECURE_API_TOKEN"), os.Getenv("SECURE_URL"))
+		client = secure.NewClient(os.Getenv("SECURE_API_TOKEN"), os.Getenv("SECURE_URL"), true)
 	})
 
 	Context("when adding an image to scanning queue", func() {
