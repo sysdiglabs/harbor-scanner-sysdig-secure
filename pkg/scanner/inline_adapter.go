@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"net/url"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -63,6 +64,7 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 
 func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	name := jobName(req.Artifact.Repository, req.Artifact.Digest)
+	repositoryURL, _ := url.Parse(req.Registry.URL)
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -80,7 +82,7 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 							Command: []string{
 								"sh",
 								"-c",
-								"mkdir -p /etc/docker/certs.d/harbor.sysdig-demo.zone && cp /tmp/ca.crt /etc/docker/certs.d/harbor.sysdig-demo.zone",
+								fmt.Sprintf("mkdir -p /etc/docker/certs.d/%s && cp /tmp/ca.crt /etc/docker/certs.d/%s", repositoryURL.Host, repositoryURL.Host),
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -102,7 +104,7 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 							Command: []string{"/bin/bash"},
 							Args: []string{
 								"-c",
-								fmt.Sprintf("docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -s '%s' -k '$(SYSDIG_SECURE_API_TOKEN)' -d '%s' -P %s || true )", i.secureURL, req.Artifact.Digest, getImageFrom(req)),
+								fmt.Sprintf("docker login %s -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -s '%s' -k '$(SYSDIG_SECURE_API_TOKEN)' -d '%s' -P %s || true )", repositoryURL.Host, i.secureURL, req.Artifact.Digest, getImageFrom(req)),
 							},
 							Env: []corev1.EnvVar{
 								{
