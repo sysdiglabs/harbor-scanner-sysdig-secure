@@ -21,18 +21,16 @@ type inlineAdapter struct {
 	k8sClient kubernetes.Interface
 	secureURL string
 	namespace string
-	configMap string
 	secret    string
 	jobTTL    int32
 }
 
-func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL string, namespace string, configMap string, secret string) Adapter {
+func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL string, namespace string, secret string) Adapter {
 	return &inlineAdapter{
 		BaseAdapter: BaseAdapter{secureClient: secureClient},
 		k8sClient:   k8sClient,
 		secureURL:   secureURL,
 		namespace:   namespace,
-		configMap:   configMap,
 		secret:      secret,
 		jobTTL:      int32(24 * time.Hour.Seconds()),
 	}

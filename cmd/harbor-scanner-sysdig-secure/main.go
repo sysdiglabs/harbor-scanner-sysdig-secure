@@ -46,7 +46,6 @@ func configure() error {
 	pflag.Bool("verify_ssl", true, "Verify SSL when connecting to Sysdig Secure URL Endpoint")
 	pflag.Bool("inline_scanning", false, "Use Inline Scanning Adapter")
 	pflag.String("namespace_name", "", "Namespace where inline scanning jobs are spawned")
-	pflag.String("configmap_name", "", "Configmap which keeps the inline scanning settings")
 	pflag.String("secret_name", "", "Secret which keeps the inline scanning secrets ")
 
 	pflag.VisitAll(func(flag *pflag.Flag) { viper.BindPFlag(flag.Name, flag) })
@@ -57,8 +56,8 @@ func configure() error {
 		return errors.New("secure_api_token is required")
 	}
 
-	if viper.GetBool("inline_scanning") && (viper.Get("namespace_name") == "" || viper.Get("configmap_name") == "" || viper.Get("secret_name") == "") {
-		return errors.New("namespace_name, configmap_name and secret_name are required when running inline scanning")
+	if viper.GetBool("inline_scanning") && (viper.Get("namespace_name") == "" || viper.Get("secret_name") == "") {
+		return errors.New("namespace_name and secret_name are required when running inline scanning")
 	}
 
 	return nil
@@ -83,7 +82,6 @@ func getAdapter() scanner.Adapter {
 			clientset,
 			viper.GetString("secure_url"),
 			viper.GetString("namespace_name"),
-			viper.GetString("configmap_name"),
 			viper.GetString("secret_name"))
 	}
 

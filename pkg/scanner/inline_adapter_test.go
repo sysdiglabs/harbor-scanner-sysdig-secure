@@ -27,7 +27,6 @@ import (
 const (
 	secureURL    = "https://secure.sysdig.com"
 	namespace    = "a-namespace"
-	configMap    = "a-configmap"
 	secret       = "a-secret"
 	resourceName = "inline-scan-1e668f7cc4c27e915cfed9793808357e"
 )
@@ -44,7 +43,7 @@ var _ = Describe("InlineAdapter", func() {
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
 		k8sClient = fake.NewSimpleClientset()
-		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, configMap, secret)
+		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret)
 	})
 
 	AfterEach(func() {
