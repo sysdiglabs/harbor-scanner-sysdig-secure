@@ -27,7 +27,6 @@ import (
 const (
 	secureURL    = "https://secure.sysdig.com"
 	namespace    = "a-namespace"
-	configMap    = "a-configmap"
 	secret       = "a-secret"
 	resourceName = "inline-scan-1e668f7cc4c27e915cfed9793808357e"
 )
@@ -44,7 +43,7 @@ var _ = Describe("InlineAdapter", func() {
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
 		k8sClient = fake.NewSimpleClientset()
-		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, configMap, secret)
+		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret)
 	})
 
 	AfterEach(func() {
@@ -147,36 +146,22 @@ func job() *batchv1.Job {
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: "OnFailure",
-					InitContainers: []corev1.Container{
-						{
-							Name:  "harbor-certificate-dumper",
-							Image: "busybox",
-							Command: []string{
-								"sh",
-								"-c",
-								"mkdir -p /etc/docker/certs.d/harbor.sysdig-demo.zone && cp /tmp/ca.crt /etc/docker/certs.d/harbor.sysdig-demo.zone",
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "docker-certificates",
-									MountPath: "/etc/docker/certs.d",
-									ReadOnly:  false,
-								},
-								{
-									Name:      "certificate",
-									MountPath: "/tmp",
-								},
-							},
-						},
-					},
 					Containers: []corev1.Container{
 						{
-							Name:    "scanner",
-							Image:   "sysdiglabs/secure-inline-scan",
-							Command: []string{"/bin/bash"},
+							Name:  "scanner",
+							Image: "sysdiglabs/sysdig-inline-scan:harbor-1.0",
 							Args: []string{
-								"-c",
-								"docker login harbor.sysdig-demo.zone -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -s 'https://secure.sysdig.com' -k '$(SYSDIG_SECURE_API_TOKEN)' -d 'an image digest' -P harbor.sysdig-demo.zone/sysdig/agent:9.7.0 || true )",
+								"-s",
+								"https://secure.sysdig.com",
+								"-k",
+								"$(SYSDIG_SECURE_API_TOKEN)",
+								"-d",
+								"an image digest",
+								"-P",
+								"-n",
+								"-u",
+								"robot$9f6711d1-834d-11ea-867f-76103d08dca8:eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTAwMDk5OTksImlhdCI6MTU4NzQxNzk5OSwiaXNzIjoiaGFyYm9yLXRva2VuLWRlZmF1bHRJc3N1ZXIiLCJpZCI6OSwicGlkIjoyLCJhY2Nlc3MiOlt7IlJlc291cmNlIjoiL3Byb2plY3QvMi9yZXBvc2l0b3J5IiwiQWN0aW9uIjoic2Nhbm5lci1wdWxsIiwiRWZmZWN0IjoiIn1dfQ.A3_aTzvxqSTvl26pQKa97ay15zRPC9K55NE0WbEyOsY3m0KFz-HuSDatncWLSYvOlcGVdysKlF3JXYWIjQ7tEI4V76WA9UMoi-fr9vEEdWLF5C1uWZJOz_S72sQ3G1BzsLp3HyWe9ZN5EBK9mhXzYNv2rONYrr0UJeBmNnMf2mU3sH71OO_G6JvRl5fwFSLSYx8nQs82PhfVhx50wRuWl_zyeCCDy_ytLzjRBvZwKuI9iVIxgM1pRfKG15NWMHfl0lcYnjm7f1_WFGKtVddkLOTICK0_FPtef1L8A16ozo_2NA32WD9PstdcTuD37XbZ6AFXUAZFoZLfCEW97mtIZBY2uYMwDQtc6Nme4o3Ya-MnBEIAs9Vi9d5a4pkf7Two-xjI-9ESgVz79YqL-_OnecQPNJ9yAFtJuxQ7StfsCIZx84hh5VdcZmW9jlezRHh4hTAjsNmrOBFTAjPyaXk98Se3Fj0Ev3bChod63og4frE7_fE7HnoBKVPHRAdBhJ2yrAiPymfij_kD4ke1Vb0AxmGGOwRP2K3TZNqEdKcq89lU6lHYV2UfrWchuF3u4ieNEC1BGu1_m_c55f0YZH1FAq6evCyA0JnFuXzO4cCxC7WHzXXRGSC9Lm3LF7cbaZAgFj5d34gbgUQmJst8nPlpW-KtwRL-pHC6mipunCBv9bU",
+								"harbor.sysdig-demo.zone/sysdig/agent:9.7.0",
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -187,68 +172,6 @@ func job() *batchv1.Job {
 												Name: secret,
 											},
 											Key: "sysdig_secure_api_token",
-										},
-									},
-								},
-								{
-									Name: "HARBOR_ROBOTACCOUNT_USER",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret,
-											},
-											Key: "harbor_robot_account_name",
-										},
-									},
-								},
-								{
-									Name: "HARBOR_ROBOTACCOUNT_PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: secret,
-											},
-											Key: "harbor_robot_account_password",
-										},
-									},
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "docker-daemon",
-									MountPath: "/var/run/docker.sock",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "docker-daemon",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/run/docker.sock",
-								},
-							},
-						},
-						{
-							Name: "docker-certificates",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/docker/certs.d",
-								},
-							},
-						},
-						{
-							Name: "certificate",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: configMap,
-									},
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "harbor_ca",
-											Path: "ca.crt",
 										},
 									},
 								},

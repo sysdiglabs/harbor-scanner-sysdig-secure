@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
-	"net/url"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -22,18 +21,16 @@ type inlineAdapter struct {
 	k8sClient kubernetes.Interface
 	secureURL string
 	namespace string
-	configMap string
 	secret    string
 	jobTTL    int32
 }
 
-func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL string, namespace string, configMap string, secret string) Adapter {
+func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL string, namespace string, secret string) Adapter {
 	return &inlineAdapter{
 		BaseAdapter: BaseAdapter{secureClient: secureClient},
 		k8sClient:   k8sClient,
 		secureURL:   secureURL,
 		namespace:   namespace,
-		configMap:   configMap,
 		secret:      secret,
 		jobTTL:      int32(24 * time.Hour.Seconds()),
 	}
@@ -64,7 +61,8 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 
 func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	name := jobName(req.Artifact.Repository, req.Artifact.Digest)
-	repositoryURL, _ := url.Parse(req.Registry.URL)
+	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
+	userPassword := fmt.Sprintf("%s:%s", user, password)
 
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -75,36 +73,22 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: "OnFailure",
-					InitContainers: []corev1.Container{
-						{
-							Name:  "harbor-certificate-dumper",
-							Image: "busybox",
-							Command: []string{
-								"sh",
-								"-c",
-								fmt.Sprintf("mkdir -p /etc/docker/certs.d/%s && cp /tmp/ca.crt /etc/docker/certs.d/%s", repositoryURL.Host, repositoryURL.Host),
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "docker-certificates",
-									MountPath: "/etc/docker/certs.d",
-									ReadOnly:  false,
-								},
-								{
-									Name:      "certificate",
-									MountPath: "/tmp",
-								},
-							},
-						},
-					},
 					Containers: []corev1.Container{
 						{
-							Name:    "scanner",
-							Image:   "sysdiglabs/secure-inline-scan",
-							Command: []string{"/bin/bash"},
+							Name:  "scanner",
+							Image: "sysdiglabs/sysdig-inline-scan:harbor-1.0",
 							Args: []string{
-								"-c",
-								fmt.Sprintf("docker login %s -u '$(HARBOR_ROBOTACCOUNT_USER)' -p '$(HARBOR_ROBOTACCOUNT_PASSWORD)' && (/bin/inline_scan.sh analyze -s '%s' -k '$(SYSDIG_SECURE_API_TOKEN)' -d '%s' -P %s || true )", repositoryURL.Host, i.secureURL, req.Artifact.Digest, getImageFrom(req)),
+								"-s",
+								i.secureURL,
+								"-k",
+								"$(SYSDIG_SECURE_API_TOKEN)",
+								"-d",
+								req.Artifact.Digest,
+								"-P",
+								"-n",
+								"-u",
+								userPassword,
+								getImageFrom(req),
 							},
 							Env: []corev1.EnvVar{
 								{
@@ -115,68 +99,6 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 												Name: i.secret,
 											},
 											Key: "sysdig_secure_api_token",
-										},
-									},
-								},
-								{
-									Name: "HARBOR_ROBOTACCOUNT_USER",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: i.secret,
-											},
-											Key: "harbor_robot_account_name",
-										},
-									},
-								},
-								{
-									Name: "HARBOR_ROBOTACCOUNT_PASSWORD",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: i.secret,
-											},
-											Key: "harbor_robot_account_password",
-										},
-									},
-								},
-							},
-							VolumeMounts: []corev1.VolumeMount{
-								{
-									Name:      "docker-daemon",
-									MountPath: "/var/run/docker.sock",
-								},
-							},
-						},
-					},
-					Volumes: []corev1.Volume{
-						{
-							Name: "docker-daemon",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/var/run/docker.sock",
-								},
-							},
-						},
-						{
-							Name: "docker-certificates",
-							VolumeSource: corev1.VolumeSource{
-								HostPath: &corev1.HostPathVolumeSource{
-									Path: "/etc/docker/certs.d",
-								},
-							},
-						},
-						{
-							Name: "certificate",
-							VolumeSource: corev1.VolumeSource{
-								ConfigMap: &corev1.ConfigMapVolumeSource{
-									LocalObjectReference: corev1.LocalObjectReference{
-										Name: i.configMap,
-									},
-									Items: []corev1.KeyToPath{
-										{
-											Key:  "harbor_ca",
-											Path: "ca.crt",
 										},
 									},
 								},
