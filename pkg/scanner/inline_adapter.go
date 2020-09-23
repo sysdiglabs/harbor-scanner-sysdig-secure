@@ -75,20 +75,12 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 					RestartPolicy: "OnFailure",
 					Containers: []corev1.Container{
 						{
-							Name:  "scanner",
-							Image: "sysdiglabs/sysdig-inline-scan:harbor-1.0",
+							Name:    "scanner",
+							Image:   "sysdiglabs/sysdig-inline-scan:harbor-1.0",
+							Command: []string{"/bin/sh"},
 							Args: []string{
-								"-s",
-								i.secureURL,
-								"-k",
-								"$(SYSDIG_SECURE_API_TOKEN)",
-								"-d",
-								req.Artifact.Digest,
-								"-P",
-								"-n",
-								"-u",
-								userPassword,
-								getImageFrom(req),
+								"-c",
+								fmt.Sprintf("/sysdig-inline-scan.sh -s %s -k '$(SYSDIG_SECURE_API_TOKEN)' -d %s -P -n -u %s %s || true", i.secureURL, req.Artifact.Digest, userPassword, getImageFrom(req)),
 							},
 							Env: []corev1.EnvVar{
 								{
