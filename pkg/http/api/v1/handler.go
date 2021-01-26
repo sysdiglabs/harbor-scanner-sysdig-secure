@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -15,11 +16,19 @@ import (
 
 type requestHandler struct {
 	adapter scanner.Adapter
+	logger Logger
 }
 
-func NewAPIHandler(adapter scanner.Adapter, logger io.Writer) http.Handler {
+type Logger interface {
+	Writer() *io.PipeWriter
+	Error(args ...interface{})
+	Errorf(format string, args ...interface{})
+}
+
+func NewAPIHandler(adapter scanner.Adapter, logger Logger) http.Handler {
 	handler := requestHandler{
 		adapter: adapter,
+		logger: logger,
 	}
 
 	router := mux.NewRouter()
@@ -30,7 +39,7 @@ func NewAPIHandler(adapter scanner.Adapter, logger io.Writer) http.Handler {
 	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(handler.scan)
 	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
 
-	return handlers.LoggingHandler(logger, router)
+	return handlers.LoggingHandler(logger.Writer(), router)
 }
 
 func health(res http.ResponseWriter, req *http.Request) {
@@ -40,8 +49,10 @@ func health(res http.ResponseWriter, req *http.Request) {
 func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {
 	metadata, err := h.adapter.GetMetadata()
 	if err != nil {
+		h.logRequestError(req, err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusInternalServerError)
+
 		json.NewEncoder(res).Encode(errorResponseFromError(err))
 		return
 	}
@@ -98,6 +109,16 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 
 	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
 	json.NewEncoder(res).Encode(vulnerabilityReport)
+}
+
+func (h *requestHandler) logRequestError(req *http.Request, err error) {
+	ts := time.Now()
+	h.logger.Errorf("[%s] \"%s %s %s\" request ERROR: %s",
+		ts.Format("02/Jan/2006:15:04:05 -0700"),
+		req.Method,
+		req.RequestURI,
+		req.Proto,
+		err)
 }
 
 func errorResponseFromError(err error) harbor.ErrorResponse {
