@@ -38,16 +38,17 @@ type Client interface {
 }
 
 func NewClient(apiToken string, secureURL string, verifySSL bool) Client {
+	// Clone DefaultTransport to use proxy settings and default timeouts
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+
+	if !verifySSL {
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+
 	return &client{
 		apiToken:  apiToken,
 		secureURL: secureURL,
-		client: http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: verifySSL,
-				},
-			},
-		},
+		client: http.Client{Transport: transport},
 	}
 }
 

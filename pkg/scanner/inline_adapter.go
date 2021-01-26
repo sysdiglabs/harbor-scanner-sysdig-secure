@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 	"fmt"
+	"os"
 	"time"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -64,6 +65,27 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
 	userPassword := fmt.Sprintf("%s:%s", user, password)
 
+	var envVars = []corev1.EnvVar{
+		{
+			Name: "SYSDIG_API_TOKEN",
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: i.secret,
+					},
+					Key: "sysdig_secure_api_token",
+				},
+			},
+		},
+	}
+
+	// Propagate local proxy variables to the Job
+	envVars = appendLocalEnvVar(envVars, "http_proxy")
+	envVars = appendLocalEnvVar(envVars, "https_proxy")
+	envVars = appendLocalEnvVar(envVars, "HTTPS_PROXY")
+	envVars = appendLocalEnvVar(envVars, "no_proxy")
+	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
+
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
@@ -76,31 +98,30 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 					Containers: []corev1.Container{
 						{
 							Name:    "scanner",
-							Image:   "sysdiglabs/sysdig-inline-scan:harbor-1.0",
+							Image:   "quay.io/sysdig/secure-inline-scan:2",
 							Command: []string{"/bin/sh"},
 							Args: []string{
 								"-c",
-								fmt.Sprintf("/sysdig-inline-scan.sh -s %s -k '$(SYSDIG_SECURE_API_TOKEN)' -d %s -P -n -u %s %s || true", i.secureURL, req.Artifact.Digest, userPassword, getImageFrom(req)),
+								fmt.Sprintf("/sysdig-inline-scan.sh --sysdig-url %s -d %s --registry-auth-basic %s %s || true", i.secureURL, req.Artifact.Digest, userPassword, getImageFrom(req)),
 							},
-							Env: []corev1.EnvVar{
-								{
-									Name: "SYSDIG_SECURE_API_TOKEN",
-									ValueFrom: &corev1.EnvVarSource{
-										SecretKeyRef: &corev1.SecretKeySelector{
-											LocalObjectReference: corev1.LocalObjectReference{
-												Name: i.secret,
-											},
-											Key: "sysdig_secure_api_token",
-										},
-									},
-								},
-							},
+							Env: envVars,
 						},
 					},
 				},
 			},
 		},
 	}
+}
+
+func appendLocalEnvVar(envVars []corev1.EnvVar, key string) []corev1.EnvVar {
+	if value, exists := os.LookupEnv(key); exists {
+		envVars = append(envVars, corev1.EnvVar{
+			Name: key,
+			Value: value,
+		})
+	}
+
+	return envVars
 }
 
 func jobName(repository string, shaDigest string) string {
