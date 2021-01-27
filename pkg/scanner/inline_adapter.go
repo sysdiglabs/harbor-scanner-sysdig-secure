@@ -34,7 +34,7 @@ func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface
 		secureURL:   secureURL,
 		namespace:   namespace,
 		secret:      secret,
-		verifySSL: 	 verifySSL,
+		verifySSL:   verifySSL,
 		jobTTL:      int32(24 * time.Hour.Seconds()),
 	}
 }
@@ -88,7 +88,6 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 	envVars = appendLocalEnvVar(envVars, "no_proxy")
 	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
 
-
 	cmdString := fmt.Sprintf("/sysdig-inline-scan.sh --sysdig-url %s -d %s --registry-skip-tls --registry-auth-basic '%s' ", i.secureURL, req.Artifact.Digest, userPassword)
 	// Add --sysdig-skip-tls only if insecure
 	if !i.verifySSL {
@@ -126,7 +125,7 @@ func (i *inlineAdapter) buildJob(req harbor.ScanRequest) *batchv1.Job {
 func appendLocalEnvVar(envVars []corev1.EnvVar, key string) []corev1.EnvVar {
 	if value, exists := os.LookupEnv(key); exists {
 		envVars = append(envVars, corev1.EnvVar{
-			Name: key,
+			Name:  key,
 			Value: value,
 		})
 	}

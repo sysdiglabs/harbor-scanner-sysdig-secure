@@ -48,7 +48,7 @@ func NewClient(apiToken string, secureURL string, verifySSL bool) Client {
 	return &client{
 		apiToken:  apiToken,
 		secureURL: secureURL,
-		client: http.Client{Transport: transport},
+		client:    http.Client{Transport: transport},
 	}
 }
 

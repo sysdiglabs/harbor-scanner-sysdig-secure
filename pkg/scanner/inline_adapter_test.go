@@ -38,7 +38,7 @@ func saveEnv(keys []string) map[string]envItem {
 	for _, key := range keys {
 		value, defined := os.LookupEnv(key)
 		envItems[key] = envItem{
-			value: value,
+			value:   value,
 			defined: defined,
 		}
 	}

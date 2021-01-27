@@ -16,7 +16,7 @@ import (
 
 type requestHandler struct {
 	adapter scanner.Adapter
-	logger Logger
+	logger  Logger
 }
 
 type Logger interface {
@@ -28,7 +28,7 @@ type Logger interface {
 func NewAPIHandler(adapter scanner.Adapter, logger Logger) http.Handler {
 	handler := requestHandler{
 		adapter: adapter,
-		logger: logger,
+		logger:  logger,
 	}
 
 	router := mux.NewRouter()
