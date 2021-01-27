@@ -31,7 +31,7 @@ func main() {
 	log.SetLevel(log.TraceLevel)
 	log.Info("Starting harbor-scanner-sysdig-secure")
 
-	apiHandler := v1.NewAPIHandler(getAdapter(), log.StandardLogger().Writer())
+	apiHandler := v1.NewAPIHandler(getAdapter(), log.StandardLogger())
 
 	apiServer := api.NewServer(apiHandler)
 

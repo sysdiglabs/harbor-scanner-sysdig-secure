@@ -3,6 +3,7 @@ package v1_test
 import (
 	"encoding/json"
 	"errors"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -31,7 +32,9 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 	BeforeEach(func() {
 		controller = gomock.NewController(GinkgoT())
 		adapter = mocks.NewMockAdapter(controller)
-		handler = v1.NewAPIHandler(adapter, GinkgoWriter)
+		log.SetOutput(GinkgoWriter)
+		log.SetLevel(log.TraceLevel)
+		handler = v1.NewAPIHandler(adapter, log.StandardLogger())
 	})
 
 	AfterEach(func() {
