@@ -25,7 +25,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 	Context("when adding an image to scanning queue", func() {
 		It("adds image to scanning queue", func() {
-			response, _ := client.AddImage("sysdig/agent:9.8.0", false)
+			response, _ := client.AddImage("quay.io/sysdig/agent:10.6.0", false)
 
 			Expect(response).NotTo(Equal(secure.ScanResponse{}))
 			Expect(response.ImageContent).NotTo(BeNil())
@@ -58,7 +58,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 			})
 
 			It("returns a ReportNotReadyErr if the image is being analyzed", func() {
-				response, _ := client.AddImage("sysdig/agent:9.9.0", true)
+				response, _ := client.AddImage("quay.io/sysdig/agent:10.7.0", true)
 
 				_, err := client.GetVulnerabilities(response.ImageDigest)
 
