@@ -28,6 +28,34 @@ const (
 	resourceName = "inline-scan-1e668f7cc4c27e915cfed9793808357e"
 )
 
+type envItem struct {
+	value   string
+	defined bool
+}
+
+func saveEnv(keys []string) map[string]envItem {
+	envItems := make(map[string]envItem)
+	for _, key := range keys {
+		value, defined := os.LookupEnv(key)
+		envItems[key] = envItem{
+			value: value,
+			defined: defined,
+		}
+	}
+
+	return envItems
+}
+
+func restoreEnv(savedItems map[string]envItem) {
+	for key, item := range savedItems {
+		if item.defined {
+			os.Setenv(key, item.value)
+		} else {
+			os.Unsetenv(key)
+		}
+	}
+}
+
 var _ = Describe("InlineAdapter", func() {
 	var (
 		controller    *gomock.Controller
@@ -64,6 +92,8 @@ var _ = Describe("InlineAdapter", func() {
 
 		It("proxy env vars are included in the Job environment", func() {
 
+			savedEnv := saveEnv([]string{"http_proxy", "https_proxy", "HTTPS_PROXY", "no_proxy", "NO_PROXY"})
+
 			os.Setenv("http_proxy", "http_proxy-value")
 			os.Setenv("https_proxy", "https_proxy-value")
 			os.Setenv("HTTPS_PROXY", "HTTPS_PROXY-value")
@@ -71,6 +101,8 @@ var _ = Describe("InlineAdapter", func() {
 			os.Setenv("NO_PROXY", "NO_PROXY-value")
 
 			inlineAdapter.Scan(scanRequest())
+
+			restoreEnv(savedEnv)
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
