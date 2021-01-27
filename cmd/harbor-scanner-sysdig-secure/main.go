@@ -82,7 +82,8 @@ func getAdapter() scanner.Adapter {
 			clientset,
 			viper.GetString("secure_url"),
 			viper.GetString("namespace_name"),
-			viper.GetString("secret_name"))
+			viper.GetString("secret_name"),
+			viper.GetBool("verify_ssl"))
 	}
 
 	log.Info("Using backend-scanning adapter")
