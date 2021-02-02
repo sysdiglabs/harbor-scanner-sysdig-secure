@@ -65,6 +65,7 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 	var scanRequest harbor.ScanRequest
 	err := json.NewDecoder(req.Body).Decode(&scanRequest)
 	if err != nil {
+		h.logRequestError(req, err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(res).Encode(
@@ -91,6 +92,7 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 
 	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
 	if err != nil {
+		h.logRequestError(req, err)
 		switch err {
 		case scanner.ErrScanRequestIDNotFound:
 			res.WriteHeader(http.StatusNotFound)
