@@ -60,7 +60,7 @@ func (b *backendAdapter) setupCredentials(req harbor.ScanRequest) error {
 }
 
 func getRegistryFrom(req harbor.ScanRequest) string {
-	return strings.ReplaceAll(req.Registry.URL, "https://", "")
+	return strings.ReplaceAll(strings.ReplaceAll(req.Registry.URL, "https://", ""), "http://", "")
 }
 
 func getUserAndPasswordFrom(authorization string) (string, string) {

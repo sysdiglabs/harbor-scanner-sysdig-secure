@@ -77,13 +77,15 @@ func getAdapter() scanner.Adapter {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		return scanner.NewInlineAdapter(
 			client,
 			clientset,
 			viper.GetString("secure_url"),
 			viper.GetString("namespace_name"),
 			viper.GetString("secret_name"),
-			viper.GetBool("verify_ssl"))
+			viper.GetBool("verify_ssl"),
+			log.StandardLogger())
 	}
 
 	log.Info("Using backend-scanning adapter")
