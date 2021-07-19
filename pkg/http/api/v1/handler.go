@@ -76,6 +76,7 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 
 	scanResponse, err := h.adapter.Scan(scanRequest)
 	if err != nil {
+		h.logRequestError(req, err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(res).Encode(errorResponseFromError(err))
