@@ -47,6 +47,7 @@ func configure() error {
 	pflag.Bool("inline_scanning", false, "Use Inline Scanning Adapter")
 	pflag.String("namespace_name", "", "Namespace where inline scanning jobs are spawned")
 	pflag.String("secret_name", "", "Secret which keeps the inline scanning secrets ")
+	pflag.String("inline_scanning_extra_params", "", "Extra parameters to provide to inline-scanner")
 
 	pflag.VisitAll(func(flag *pflag.Flag) { viper.BindPFlag(flag.Name, flag) })
 
@@ -84,6 +85,7 @@ func getAdapter() scanner.Adapter {
 			viper.GetString("secure_url"),
 			viper.GetString("namespace_name"),
 			viper.GetString("secret_name"),
+			viper.GetString("inline_scanning_extra_params"),
 			viper.GetBool("verify_ssl"),
 			log.StandardLogger())
 	}

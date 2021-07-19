@@ -25,13 +25,14 @@ var ErrInlineScanError = errors.New("error executing the inline scanner")
 
 type inlineAdapter struct {
 	BaseAdapter
-	k8sClient kubernetes.Interface
-	secureURL string
-	namespace string
-	secret    string
-	verifySSL bool
-	jobTTL    int32
-	logger    Logger
+	k8sClient   kubernetes.Interface
+	secureURL   string
+	namespace   string
+	secret      string
+	verifySSL   bool
+	jobTTL      int32
+	extraParams string
+	logger      Logger
 }
 
 type podResults struct {
@@ -51,7 +52,7 @@ type Logger interface {
 	Errorf(format string, args ...interface{})
 }
 
-func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL string, namespace string, secret string, verifySSL bool, logger Logger) Adapter {
+func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL, namespace, secret, extraParams string, verifySSL bool, logger Logger) Adapter {
 	return &inlineAdapter{
 		BaseAdapter: BaseAdapter{secureClient: secureClient},
 		k8sClient:   k8sClient,
@@ -60,6 +61,7 @@ func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface
 		secret:      secret,
 		verifySSL:   verifySSL,
 		jobTTL:      jobDefaultTTL,
+		extraParams: extraParams,
 		logger:      logger,
 	}
 }
@@ -124,6 +126,9 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 		cmdString += "--sysdig-skip-tls "
 	}
 
+	if i.extraParams != "" {
+		cmdString += fmt.Sprintf("%s ", i.extraParams)
+	}
 
 	var backoffLimit int32 = 0
 	cmdString += getImageFrom(req)
@@ -133,7 +138,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 		},
 		Spec: batchv1.JobSpec{
 			TTLSecondsAfterFinished: &i.jobTTL,
-			BackoffLimit: &backoffLimit,
+			BackoffLimit:            &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,

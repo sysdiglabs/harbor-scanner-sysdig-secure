@@ -71,7 +71,7 @@ var _ = Describe("InlineAdapter", func() {
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
 		k8sClient = fake.NewSimpleClientset()
-		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, true, log.StandardLogger())
+		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "",true, log.StandardLogger())
 	})
 
 	AfterEach(func() {
@@ -118,13 +118,24 @@ var _ = Describe("InlineAdapter", func() {
 
 		It("adds --sysdig-skip-tls in insecure", func() {
 
-			inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, false, log.StandardLogger())
+			inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "",false, log.StandardLogger())
 
 			inlineAdapter.Scan(scanRequest())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
 			Expect(result.Spec.Template.Spec.Containers[0].Args).To(ContainElement(ContainSubstring("--sysdig-skip-tls")))
+		})
+
+		It("adds extra parameters", func() {
+
+			inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "--foo --bar", false, log.StandardLogger())
+
+			inlineAdapter.Scan(scanRequest())
+
+			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
+
+			Expect(result.Spec.Template.Spec.Containers[0].Args).To(ContainElement(ContainSubstring(" --foo --bar ")))
 		})
 
 		Context("when a job already exists", func() {
