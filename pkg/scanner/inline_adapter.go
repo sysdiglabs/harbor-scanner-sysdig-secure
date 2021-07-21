@@ -130,8 +130,9 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 		cmdString += fmt.Sprintf("%s ", i.extraParams)
 	}
 
-	var backoffLimit int32 = 0
 	cmdString += getImageFrom(req)
+	cmdString += "; RC=$?; if [[ $RC -eq 1 ]]; then (exit 0); else (exit $RC); fi"
+	var backoffLimit int32 = 0
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
