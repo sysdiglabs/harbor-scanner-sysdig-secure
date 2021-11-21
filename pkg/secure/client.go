@@ -126,10 +126,9 @@ func (s *client) checkErrorInSecureAPI(response *http.Response, body []byte) err
 
 func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, error) {
 	var result VulnerabilityReport
-
 	response, body, err := s.doRequest(
 		http.MethodGet,
-		fmt.Sprintf("/api/scanning/v1/anchore/images/%s/vuln/all", shaDigest),
+		fmt.Sprintf("/api/scanning/v1/images/%s/vulnDirect/all?includeVulnExceptions=%t", shaDigest, false),
 		nil)
 	if err != nil {
 		return result, err
