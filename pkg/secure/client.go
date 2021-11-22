@@ -126,9 +126,14 @@ func (s *client) checkErrorInSecureAPI(response *http.Response, body []byte) err
 
 func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, error) {
 	var result VulnerabilityReport
+	sd := shaDigest
+	if strings.HasPrefix(shaDigest, "sha256:") {
+		sd = strings.Replace(sd, "sha256:", "", -1)
+	}
+
 	response, body, err := s.doRequest(
 		http.MethodGet,
-		fmt.Sprintf("/api/scanning/v1/images/%s/vulnDirect/all?includeVulnExceptions=%t", shaDigest, false),
+		fmt.Sprintf("/api/scanning/v1/images/%s/vulnDirect/all?includeVulnExceptions=%t", sd, false),
 		nil)
 	if err != nil {
 		return result, err
