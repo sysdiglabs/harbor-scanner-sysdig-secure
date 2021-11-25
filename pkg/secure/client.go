@@ -124,30 +124,55 @@ func (s *client) checkErrorInSecureAPI(response *http.Response, body []byte) err
 	return errors.New(secureError.Message)
 }
 
+type imageScanResultResponse struct {
+	Results []*imageScanResult `json:"results"`
+}
+
+type imageScanResult struct {
+	AnalysisStatus string `json:"analysisStatus"`
+	AnalyzedAt     int    `json:"analyzedAt"`
+	CreatedAt      int    `json:"createdAt"`
+	ImageDigest    string `json:"imageDigest"`
+	ImageId        string `json:"imageId"`
+	FullTag        string `json:"fullTag"`
+}
+
 func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, error) {
+	var checkScanResultResponse imageScanResultResponse
 	var result VulnerabilityReport
 
 	response, body, err := s.doRequest(
 		http.MethodGet,
-		fmt.Sprintf("/api/scanning/v1/anchore/images/%s/vuln/all", shaDigest),
+		fmt.Sprintf("/api/scanning/v1/results?filter=%s&limit=%d", shaDigest, 1),
 		nil)
 	if err != nil {
 		return result, err
 	}
 
 	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		if response.StatusCode == http.StatusNotFound {
-			if err.Error() == "image not found in DB" {
-				return result, ErrImageNotFound
-			}
-
-			if strings.HasPrefix(err.Error(), "image is not analyzed - analysis_status:") {
-				return result, ErrVulnerabiltyReportNotReady
-			}
-		}
+		return result, err
+	}
+	if err = json.Unmarshal(body, &checkScanResultResponse); err != nil {
 		return result, err
 	}
 
+	if len(checkScanResultResponse.Results) == 0 {
+		return result, ErrImageNotFound
+	} else if img := checkScanResultResponse.Results[0]; img.AnalysisStatus != "analyzed" {
+		return result, ErrVulnerabiltyReportNotReady
+	}
+
+	response, body, err = s.doRequest(
+		http.MethodGet,
+		fmt.Sprintf("/api/scanning/v1/images/%s/vulnDirect/all?includeVulnExceptions=%t", shaDigest, false),
+		nil)
+	if err != nil {
+		return result, err
+	}
+
+	if err = s.checkErrorInSecureAPI(response, body); err != nil {
+		return result, err
+	}
 	if err = json.Unmarshal(body, &result); err != nil {
 		return result, err
 	}

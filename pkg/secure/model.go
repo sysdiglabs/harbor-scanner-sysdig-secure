@@ -51,8 +51,8 @@ type ErrorResponse struct {
 
 type VulnerabilityReport struct {
 	ImageDigest       string           `json:"imageDigest"`
-	VulnerabilityType string           `json:"vulnerability_type"`
-	Vulnerabilities   []*Vulnerability `json:"vulnerabilities"`
+	VulnerabilityType string           `json:"vtype"`
+	Vulnerabilities   []*Vulnerability `json:"vulns"`
 }
 
 type Vulnerability struct {
@@ -72,12 +72,12 @@ type Vulnerability struct {
 }
 
 type NVDData struct {
-	ID    string `json:"id"`
-	CSSV2 *CSS   `json:"css_v2"`
-	CSSV3 *CSS   `json:"css_v3"`
+	ID     string `json:"id"`
+	CVSSV2 *CVSS  `json:"cvss_v2"`
+	CVSSV3 *CVSS  `json:"cvss_v3"`
 }
 
-type CSS struct {
+type CVSS struct {
 	BaseScore           float32 `json:"base_score"`
 	ExploitabilityScore float32 `json:"exploitability_score"`
 	ImpactScore         float32 `json:"impact_score"`
