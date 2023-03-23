@@ -3,10 +3,12 @@ package v1_test
 import (
 	"encoding/json"
 	"errors"
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -192,25 +194,28 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 	})
 
 	Context("GET /api/v1/scan/{scan_request_id}/report", func() {
-		It("returns OK", func() {
-			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
+		reqID := harbor.ScanRequestID("scan-request-id")
+		reqPath := fmt.Sprintf("/api/v1/scan/%s/report", reqID)
 
-			response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+		It("returns OK", func() {
+			adapter.EXPECT().GetVulnerabilityReport(reqID).Return(vulnerabilityReport(), nil)
+
+			response := doGetRequest(handler, reqPath)
 
 			Expect(response.StatusCode).To(Equal(http.StatusOK))
 		})
 
 		It("returns scanner.adapter.vuln.report.harbor Mime Type", func() {
-			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
+			adapter.EXPECT().GetVulnerabilityReport(reqID).Return(vulnerabilityReport(), nil)
 
-			response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+			response := doGetRequest(handler, reqPath)
 
 			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0"))
 		})
 
 		It("returns a valid scanner.vuln.report.harbor as JSON", func() {
-			adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), nil)
-			response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+			adapter.EXPECT().GetVulnerabilityReport(reqID).Return(vulnerabilityReport(), nil)
+			response := doGetRequest(handler, reqPath)
 
 			var result harbor.VulnerabilityReport
 			json.NewDecoder(response.Body).Decode(&result)
@@ -220,11 +225,11 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 		Context("when scan_request_id doesn't exist", func() {
 			BeforeEach(func() {
-				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.ErrScanRequestIDNotFound)
+				adapter.EXPECT().GetVulnerabilityReport(reqID).Return(vulnerabilityReport(), scanner.ErrScanRequestIDNotFound)
 			})
 
 			It("returns NOT_FOUND", func() {
-				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+				response := doGetRequest(handler, reqPath)
 
 				Expect(response.StatusCode).To(Equal(http.StatusNotFound))
 			})
@@ -232,47 +237,47 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 		Context("when image is still being scanned", func() {
 			BeforeEach(func() {
-				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), scanner.ErrVulnerabiltyReportNotReady)
+				adapter.EXPECT().GetVulnerabilityReport(reqID).Return(vulnerabilityReport(), scanner.ErrVulnerabilityReportNotReady)
 			})
 
 			It("returns FOUND", func() {
-				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+				response := doGetRequest(handler, reqPath)
 
 				Expect(response.StatusCode).To(Equal(http.StatusFound))
 			})
 
 			It("returns the interval after request should be retried", func() {
-				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+				response := doGetRequest(handler, reqPath)
 
-				Expect(response.Header.Get("Refresh-After")).To(Equal("120"))
+				Expect(response.Header.Get("Refresh-After")).To(Equal(fmt.Sprintf("%d", v1.DefaultRefreshTimeInSeconds)))
 			})
 
 			It("returns the Location header with the URL to check", func() {
-				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+				response := doGetRequest(handler, reqPath)
 
-				Expect(response.Header.Get("Location")).To(Equal("/api/v1/scan/scan-request-id/report"))
+				Expect(response.Header.Get("Location")).To(Equal(reqPath))
 			})
 		})
 
 		Context("when other unexpected errors happen", func() {
 			BeforeEach(func() {
-				adapter.EXPECT().GetVulnerabilityReport("scan-request-id").Return(vulnerabilityReport(), ErrUnexpected)
+				adapter.EXPECT().GetVulnerabilityReport(reqID).Return(vulnerabilityReport(), ErrUnexpected)
 			})
 
 			It("returns INTERNAL_SERVER_ERROR", func() {
-				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+				response := doGetRequest(handler, reqPath)
 
 				Expect(response.StatusCode).To(Equal(http.StatusInternalServerError))
 			})
 
 			It("returns scanner.adapter.error mime type", func() {
-				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+				response := doGetRequest(handler, reqPath)
 
 				Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.error+json; version=1.0"))
 			})
 
 			It("returns a the error encoded as JSON", func() {
-				response := doGetRequest(handler, "/api/v1/scan/scan-request-id/report")
+				response := doGetRequest(handler, reqPath)
 
 				var result harbor.ErrorResponse
 				json.NewDecoder(response.Body).Decode(&result)

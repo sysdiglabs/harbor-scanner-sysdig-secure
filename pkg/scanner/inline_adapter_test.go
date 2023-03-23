@@ -1,4 +1,4 @@
-package scanner_test
+package scanner
 
 import (
 	"context"
@@ -18,7 +18,6 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure/mocks"
 )
@@ -60,18 +59,18 @@ func restoreEnv(savedItems map[string]envItem) {
 
 var _ = Describe("InlineAdapter", func() {
 	var (
-		controller    *gomock.Controller
-		client        *mocks.MockClient
-		inlineAdapter scanner.Adapter
-		k8sClient     kubernetes.Interface
+		controller *gomock.Controller
+		client     *mocks.MockClient
+		adapter    Adapter
+		k8sClient  kubernetes.Interface
 	)
 
 	BeforeEach(func() {
-		log.SetOutput(GinkgoWriter )
+		log.SetOutput(GinkgoWriter)
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
 		k8sClient = fake.NewSimpleClientset()
-		inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "",true, log.StandardLogger())
+		adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", true, log.StandardLogger())
 	})
 
 	AfterEach(func() {
@@ -80,13 +79,13 @@ var _ = Describe("InlineAdapter", func() {
 
 	Context("when scanning an image", func() {
 		It("returns the scanID for checking if scan has finished", func() {
-			result, _ := inlineAdapter.Scan(scanRequest())
+			result, _ := adapter.Scan(scanRequest())
 
 			Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 		})
 
 		It("schedules the scanning job within namespace", func() {
-			inlineAdapter.Scan(scanRequest())
+			adapter.Scan(scanRequest())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
@@ -103,7 +102,7 @@ var _ = Describe("InlineAdapter", func() {
 			os.Setenv("no_proxy", "no_proxy-value")
 			os.Setenv("NO_PROXY", "NO_PROXY-value")
 
-			inlineAdapter.Scan(scanRequest())
+			adapter.Scan(scanRequest())
 
 			restoreEnv(savedEnv)
 
@@ -118,9 +117,9 @@ var _ = Describe("InlineAdapter", func() {
 
 		It("adds --sysdig-skip-tls in insecure", func() {
 
-			inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "",false, log.StandardLogger())
+			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", false, log.StandardLogger())
 
-			inlineAdapter.Scan(scanRequest())
+			adapter.Scan(scanRequest())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
@@ -129,9 +128,9 @@ var _ = Describe("InlineAdapter", func() {
 
 		It("adds extra parameters", func() {
 
-			inlineAdapter = scanner.NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "--foo --bar", false, log.StandardLogger())
+			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "--foo --bar", false, log.StandardLogger())
 
-			inlineAdapter.Scan(scanRequest())
+			adapter.Scan(scanRequest())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
@@ -142,7 +141,7 @@ var _ = Describe("InlineAdapter", func() {
 			It("returns the scanID for checking if scan has finished", func() {
 				k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
 
-				result, err := inlineAdapter.Scan(scanRequest())
+				result, err := adapter.Scan(scanRequest())
 
 				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 				Expect(err).To(Succeed())
@@ -154,9 +153,9 @@ var _ = Describe("InlineAdapter", func() {
 
 		Context("when no job for image exists", func() {
 			It("returns a ScanRequestID Not Found Error", func() {
-				_, err := inlineAdapter.GetVulnerabilityReport(scanID)
+				_, err := adapter.GetVulnerabilityReport(scanID)
 
-				Expect(err).To(MatchError(scanner.ErrScanRequestIDNotFound))
+				Expect(err).To(MatchError(ErrScanRequestIDNotFound))
 			})
 		})
 
@@ -164,9 +163,9 @@ var _ = Describe("InlineAdapter", func() {
 			It("returns a VulnerabilityReport is not Ready Error", func() {
 				k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
 
-				_, err := inlineAdapter.GetVulnerabilityReport(scanID)
+				_, err := adapter.GetVulnerabilityReport(scanID)
 
-				Expect(err).To(MatchError(scanner.ErrVulnerabiltyReportNotReady))
+				Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
 			})
 		})
 
@@ -183,7 +182,7 @@ var _ = Describe("InlineAdapter", func() {
 				client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
 				client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
 
-				result, _ := inlineAdapter.GetVulnerabilityReport(scanID)
+				result, _ := adapter.GetVulnerabilityReport(scanID)
 
 				Expect(result).To(Equal(vulnerabilityReport()))
 			})
@@ -192,13 +191,12 @@ var _ = Describe("InlineAdapter", func() {
 				It("returns the error", func() {
 					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
 
-					_, err := inlineAdapter.GetVulnerabilityReport(scanID)
+					_, err := adapter.GetVulnerabilityReport(scanID)
 
 					Expect(err).To(MatchError(errSecure))
 				})
 			})
 		})
-
 
 	})
 })
@@ -213,7 +211,7 @@ func job() *batchv1.Job {
 		},
 		Spec: batchv1.JobSpec{
 			TTLSecondsAfterFinished: &jobTTL,
-			BackoffLimit: &backoffLimit,
+			BackoffLimit:            &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
 					RestartPolicy: corev1.RestartPolicyNever,
@@ -248,17 +246,17 @@ func job() *batchv1.Job {
 }
 
 func activeJob() *batchv1.Job {
-	job := job()
-	job.Status.Active = 1
+	j := job()
+	j.Status.Active = 1
 
-	return job
+	return j
 }
 
 func finishedJob() *batchv1.Job {
-	job := job()
-	job.Status.Active = 0
+	j := job()
+	j.Status.Active = 0
 
-	return job
+	return j
 }
 
 func finishedPodForJob(j *batchv1.Job) *corev1.Pod {

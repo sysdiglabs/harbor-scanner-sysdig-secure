@@ -67,9 +67,11 @@ func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface
 }
 
 func (i *inlineAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
-	if err := i.createJobFrom(req); err != nil {
+	err := i.createJobFrom(req)
+	if err != nil {
 		return harbor.ScanResponse{}, err
 	}
+
 	return i.CreateScanResponse(req.Artifact.Repository, req.Artifact.Digest), nil
 }
 
@@ -178,7 +180,7 @@ func jobName(repository string, shaDigest string) string {
 		md5.Sum([]byte(fmt.Sprintf("%s|%s", repository, shaDigest))))
 }
 
-func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
+func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequestID) (harbor.VulnerabilityReport, error) {
 	repository, shaDigest := i.DecodeScanResponseID(scanResponseID)
 
 	name := jobName(repository, shaDigest)
@@ -190,7 +192,7 @@ func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.Vu
 
 	if job.Status.Active != 0 {
 		i.logger.Infof("Scan for %s/%s still in progress in job %s", repository, shaDigest, name)
-		return harbor.VulnerabilityReport{}, ErrVulnerabiltyReportNotReady
+		return harbor.VulnerabilityReport{}, ErrVulnerabilityReportNotReady
 	}
 
 	defer i.cleanupJob(name)

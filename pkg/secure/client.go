@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -15,10 +15,9 @@ const (
 )
 
 var (
-	ErrImageNotFound              = errors.New("image not found in Sysdig Secure")
-	ErrVulnerabiltyReportNotReady = errors.New("image is being analyzed by Sysdig Secure")
-
-	ErrRegistryAlreadyExists = errors.New("registry already exists in DB")
+	ErrImageNotFound               = errors.New("image not found in Sysdig Secure")
+	ErrVulnerabilityReportNotReady = errors.New("image is being analyzed by Sysdig Secure")
+	ErrRegistryAlreadyExists       = errors.New("registry already exists in DB")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
@@ -103,8 +102,9 @@ func (s *client) doRequest(method string, url string, payload []byte) (*http.Res
 		return nil, emptyBody, err
 	}
 
-	body, err := ioutil.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
 	defer response.Body.Close()
+
 	if err != nil {
 		return nil, emptyBody, err
 	}
@@ -159,7 +159,7 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	if len(checkScanResultResponse.Results) == 0 {
 		return result, ErrImageNotFound
 	} else if img := checkScanResultResponse.Results[0]; img.AnalysisStatus != "analyzed" {
-		return result, ErrVulnerabiltyReportNotReady
+		return result, ErrVulnerabilityReportNotReady
 	}
 
 	response, body, err = s.doRequest(

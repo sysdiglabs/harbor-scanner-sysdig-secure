@@ -1,4 +1,4 @@
-package scanner_test
+package scanner
 
 import (
 	"errors"
@@ -9,14 +9,13 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure/mocks"
 )
 
 const (
 	imageDigest = "an image digest"
-	scanID      = "c3lzZGlnL2FnZW50fGFuIGltYWdlIGRpZ2VzdA=="
+	scanID      = harbor.ScanRequestID("c3lzZGlnL2FnZW50fGFuIGltYWdlIGRpZ2VzdA==")
 	user        = "robot$9f6711d1-834d-11ea-867f-76103d08dca8"
 	password    = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1OTAwMDk5OTksImlhdCI6MTU4NzQxNzk5OSwiaXNzIjoiaGFyYm9yLXRva2VuLWRlZmF1bHRJc3N1ZXIiLCJpZCI6OSwicGlkIjoyLCJhY2Nlc3MiOlt7IlJlc291cmNlIjoiL3Byb2plY3QvMi9yZXBvc2l0b3J5IiwiQWN0aW9uIjoic2Nhbm5lci1wdWxsIiwiRWZmZWN0IjoiIn1dfQ.A3_aTzvxqSTvl26pQKa97ay15zRPC9K55NE0WbEyOsY3m0KFz-HuSDatncWLSYvOlcGVdysKlF3JXYWIjQ7tEI4V76WA9UMoi-fr9vEEdWLF5C1uWZJOz_S72sQ3G1BzsLp3HyWe9ZN5EBK9mhXzYNv2rONYrr0UJeBmNnMf2mU3sH71OO_G6JvRl5fwFSLSYx8nQs82PhfVhx50wRuWl_zyeCCDy_ytLzjRBvZwKuI9iVIxgM1pRfKG15NWMHfl0lcYnjm7f1_WFGKtVddkLOTICK0_FPtef1L8A16ozo_2NA32WD9PstdcTuD37XbZ6AFXUAZFoZLfCEW97mtIZBY2uYMwDQtc6Nme4o3Ya-MnBEIAs9Vi9d5a4pkf7Two-xjI-9ESgVz79YqL-_OnecQPNJ9yAFtJuxQ7StfsCIZx84hh5VdcZmW9jlezRHh4hTAjsNmrOBFTAjPyaXk98Se3Fj0Ev3bChod63og4frE7_fE7HnoBKVPHRAdBhJ2yrAiPymfij_kD4ke1Vb0AxmGGOwRP2K3TZNqEdKcq89lU6lHYV2UfrWchuF3u4ieNEC1BGu1_m_c55f0YZH1FAq6evCyA0JnFuXzO4cCxC7WHzXXRGSC9Lm3LF7cbaZAgFj5d34gbgUQmJst8nPlpW-KtwRL-pHC6mipunCBv9bU"
 )
@@ -28,15 +27,15 @@ var (
 
 var _ = Describe("BackendAdapter", func() {
 	var (
-		controller     *gomock.Controller
-		client         *mocks.MockClient
-		backendAdapter scanner.Adapter
+		controller *gomock.Controller
+		client     *mocks.MockClient
+		adapter    Adapter
 	)
 
 	BeforeEach(func() {
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
-		backendAdapter = scanner.NewBackendAdapter(client)
+		adapter = NewBackendAdapter(client)
 	})
 
 	AfterEach(func() {
@@ -50,7 +49,7 @@ var _ = Describe("BackendAdapter", func() {
 			secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
 			client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
 
-			result, _ := backendAdapter.Scan(scanRequest())
+			result, _ := adapter.Scan(scanRequest())
 
 			Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 		})
@@ -62,7 +61,7 @@ var _ = Describe("BackendAdapter", func() {
 				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
 				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent@an image digest", false).Return(secureResponse, nil)
 
-				result, _ := backendAdapter.Scan(scanRequestWithoutTag())
+				result, _ := adapter.Scan(scanRequestWithoutTag())
 
 				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 			})
@@ -75,7 +74,7 @@ var _ = Describe("BackendAdapter", func() {
 				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
 				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
 
-				result, _ := backendAdapter.Scan(scanRequest())
+				result, _ := adapter.Scan(scanRequest())
 
 				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 			})
@@ -86,7 +85,7 @@ var _ = Describe("BackendAdapter", func() {
 				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
 				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
 
-				_, err := backendAdapter.Scan(scanRequest())
+				_, err := adapter.Scan(scanRequest())
 
 				Expect(err).To(MatchError(errSecure))
 			})
@@ -99,7 +98,7 @@ var _ = Describe("BackendAdapter", func() {
 			client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
 			client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
 
-			result, _ := backendAdapter.GetVulnerabilityReport(scanID)
+			result, _ := adapter.GetVulnerabilityReport(scanID)
 
 			Expect(result).To(Equal(vulnerabilityReport()))
 		})
@@ -109,26 +108,26 @@ var _ = Describe("BackendAdapter", func() {
 				It("returns a ScanRequestID Not Found Error", func() {
 					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
 
-					_, err := backendAdapter.GetVulnerabilityReport(scanID)
+					_, err := adapter.GetVulnerabilityReport(scanID)
 
-					Expect(err).To(MatchError(scanner.ErrScanRequestIDNotFound))
+					Expect(err).To(MatchError(ErrScanRequestIDNotFound))
 				})
 			})
 
 			Context("when Secure is still scanning the image", func() {
 				It("returns a VulnerabilityReport is not Ready Error", func() {
-					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrVulnerabiltyReportNotReady)
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrVulnerabilityReportNotReady)
 
-					_, err := backendAdapter.GetVulnerabilityReport(scanID)
+					_, err := adapter.GetVulnerabilityReport(scanID)
 
-					Expect(err).To(MatchError(scanner.ErrVulnerabiltyReportNotReady))
+					Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
 				})
 			})
 
 			It("returns the error", func() {
 				client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
 
-				_, err := backendAdapter.GetVulnerabilityReport(scanID)
+				_, err := adapter.GetVulnerabilityReport(scanID)
 
 				Expect(err).To(MatchError(errSecure))
 			})

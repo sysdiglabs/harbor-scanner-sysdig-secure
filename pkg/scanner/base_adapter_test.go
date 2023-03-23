@@ -1,4 +1,4 @@
-package scanner_test
+package scanner
 
 import (
 	"time"
@@ -7,13 +7,12 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure/mocks"
 )
 
 var (
-	lastSync          = time.Date(2019, time.November, 15, 23, 54, 05, 0, time.UTC)
+	lastSyncTs        = time.Date(2019, time.November, 15, 23, 54, 05, 0, time.UTC)
 	lastSyncFormatted = "2019-11-15T23:54:05Z"
 )
 
@@ -21,13 +20,13 @@ var _ = Describe("BaseAdapter", func() {
 	var (
 		controller  *gomock.Controller
 		client      *mocks.MockClient
-		baseAdapter scanner.Adapter
+		baseAdapter Adapter
 	)
 
 	BeforeEach(func() {
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
-		baseAdapter = scanner.NewBackendAdapter(client)
+		baseAdapter = NewBackendAdapter(client)
 	})
 
 	AfterEach(func() {
@@ -84,7 +83,7 @@ func feeds() []secure.Feed {
 					LastSync: time.Date(2012, time.November, 10, 23, 0, 0, 0, time.UTC),
 				},
 				{
-					LastSync: lastSync,
+					LastSync: lastSyncTs,
 				},
 			},
 		},

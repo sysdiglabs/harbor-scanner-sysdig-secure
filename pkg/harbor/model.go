@@ -11,6 +11,8 @@ const (
 	ScanAdapterErrorMimeType           = "application/vnd.scanner.adapter.error+json; version=1.0"
 )
 
+type ScanRequestID string
+
 type Scanner struct {
 	Name    string `json:"name,omitempty"`
 	Vendor  string `json:"vendor,omitempty"`
@@ -53,7 +55,7 @@ type ErrorResponse struct {
 }
 
 type ScanResponse struct {
-	ID string `json:"id"`
+	ID ScanRequestID `json:"id"`
 }
 
 type VulnerabilityReport struct {

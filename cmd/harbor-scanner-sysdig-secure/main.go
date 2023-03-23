@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -27,12 +28,19 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.TraceLevel)
 	log.Info("Starting harbor-scanner-sysdig-secure")
 
-	apiHandler := v1.NewAPIHandler(getAdapter(), log.StandardLogger())
+	adapter := getAdapter()
+	if viper.GetBool("async_mode") {
+		adapter = scanner.NewAsyncAdapter(ctx, adapter, log.StandardLogger(), scanner.DefaultAsyncAdapterRefreshRate)
+	}
 
+	apiHandler := v1.NewAPIHandler(adapter, log.StandardLogger())
 	apiServer := api.NewServer(apiHandler)
 
 	log.Fatal(apiServer.ListenAndServe())
@@ -45,6 +53,7 @@ func configure() error {
 	pflag.String("secure_url", "https://secure.sysdig.com", "Sysdig Secure URL Endpoint")
 	pflag.Bool("verify_ssl", true, "Verify SSL when connecting to Sysdig Secure URL Endpoint")
 	pflag.Bool("inline_scanning", false, "Use Inline Scanning Adapter")
+	pflag.Bool("async_mode", false, "Use Async-Mode to perform reports retrieval")
 	pflag.String("namespace_name", "", "Namespace where inline scanning jobs are spawned")
 	pflag.String("secret_name", "", "Secret which keeps the inline scanning secrets ")
 	pflag.String("inline_scanning_extra_params", "", "Extra parameters to provide to inline-scanner")
