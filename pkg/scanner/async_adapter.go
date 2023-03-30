@@ -23,7 +23,7 @@ type AsyncAdapter struct {
 	requestsChan        chan harbor.ScanRequestID // channel where new requests about reports will be published
 	repliesChan         chan *asyncReportReply    // channel where replies about retrieval of reports will be published
 	results             map[harbor.ScanRequestID]*asyncReportReply
-	stopChan            chan struct{}
+	stopChan            chan struct{} // channel where stop signal will be published so that all the background tasks can stop running
 	wrapped             Adapter
 }
 
@@ -88,11 +88,11 @@ func (a *AsyncAdapter) awaitReportAvailability(scanID harbor.ScanRequestID) {
 	for {
 		select {
 		case <-a.stopChan:
-			a.log.Debugf("stopping background task of '%s'", scanID)
+			a.log.Debugf("Stopping async task of '%s'", scanID)
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			a.log.Infof("checking status of report '%s'", scanID)
+			a.log.Infof("Checking status of report '%s'", scanID)
 			report, err := a.wrapped.GetVulnerabilityReport(scanID)
 			if err != ErrVulnerabilityReportNotReady {
 				ticker.Stop()
@@ -106,33 +106,32 @@ func (a *AsyncAdapter) awaitReportAvailability(scanID harbor.ScanRequestID) {
 func (a *AsyncAdapter) listen(ctx context.Context) {
 
 	go func(ctx context.Context) {
-		a.log.Infof("start listening for updates")
+		a.log.Infof("Start listening for async updates")
 		for {
-			a.log.Infof("listening for updates")
 			select {
 			case <-ctx.Done():
-				a.log.Infof("stop listening for updates: sending signal to stop background tasks")
+				a.log.Infof("Stop listening for updates: sending signal to stop background tasks")
 				a.stopChan <- struct{}{}
 				return
 			case id := <-a.consumptionChan:
-				a.log.Debugf("received consumption for report '%s', deleting it from cache", id)
+				a.log.Debugf("Received consumption for report '%s', deleting it from cache", id)
 				a.lock.Lock()
 				delete(a.results, id)
 				a.lock.Unlock()
 				a.log.Debugf("report '%s' deleted from cache", id)
 			case id := <-a.requestsChan:
-				a.log.Debugf("received new request for report '%s', adding it to cache", id)
+				a.log.Debugf("Received new request for report '%s', adding it to cache", id)
 				a.lock.Lock()
 				a.results[id] = nil
 				a.lock.Unlock()
-				a.log.Debugf("report '%s' added to cache", id)
+				a.log.Debugf("Report '%s' added to cache", id)
 			case reply := <-a.repliesChan:
 				if reply != nil {
-					a.log.Infof("report '%s' completed, updating cache", reply.scanID)
+					a.log.Infof("Report '%s' completed, updating cache", reply.scanID)
 					a.lock.Lock()
 					a.results[reply.scanID] = reply
 					a.lock.Unlock()
-					a.log.Debugf("report '%s' updated in cache", reply.scanID)
+					a.log.Debugf("Report '%s' updated in cache", reply.scanID)
 				}
 			}
 		}

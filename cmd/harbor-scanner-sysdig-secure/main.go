@@ -37,6 +37,7 @@ func main() {
 
 	adapter := getAdapter()
 	if viper.GetBool("async_mode") {
+		log.Info("Async-Mode enabled")
 		adapter = scanner.NewAsyncAdapter(ctx, adapter, log.StandardLogger(), scanner.DefaultAsyncAdapterRefreshRate)
 	}
 
