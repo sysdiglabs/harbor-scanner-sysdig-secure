@@ -1,10 +1,10 @@
 name: CI
 
 on:
-  push:
-    branches:
-    - master
   pull_request:
+    branches:
+      - master
+  push:
     branches:
     - master
 
@@ -22,10 +22,12 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
-    - name: Cache modules
-      uses: actions/cache@v1
+    - name: Cache Go modules
+      uses: actions/cache@v3
       with:
-        path: ~/go/pkg/mod
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-
@@ -33,7 +35,7 @@ jobs:
     - name: Get dependencies
       run: |
         go get -v -t -d ./...
-        go get github.com/onsi/ginkgo/ginkgo
+        go install github.com/onsi/ginkgo/ginkgo@v1.16.5
 
     - name: Build
       run: go build ./...

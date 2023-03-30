@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	ErrScanRequestIDNotFound      = errors.New("scanRequestID cannot be found")
-	ErrVulnerabiltyReportNotReady = errors.New("image is being scanned and report is still not ready")
+	ErrScanRequestIDNotFound       = errors.New("scanRequestID cannot be found")
+	ErrVulnerabilityReportNotReady = errors.New("image is being scanned and report is still not ready")
 )
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Adapter interface {
 	GetMetadata() (harbor.ScannerAdapterMetadata, error)
 	Scan(req harbor.ScanRequest) (harbor.ScanResponse, error)
-	GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error)
+	GetVulnerabilityReport(scanResponseID harbor.ScanRequestID) (harbor.VulnerabilityReport, error)
 }

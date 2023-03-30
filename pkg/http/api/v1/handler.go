@@ -14,6 +14,10 @@ import (
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner"
 )
 
+const (
+	DefaultRefreshTimeInSeconds = 60
+)
+
 type requestHandler struct {
 	adapter scanner.Adapter
 	logger  Logger
@@ -91,27 +95,27 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 
-	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(vars["scan_request_id"])
+	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(harbor.ScanRequestID(vars["scan_request_id"]))
 	if err != nil {
 		h.logRequestError(req, err)
 		switch err {
 		case scanner.ErrScanRequestIDNotFound:
 			res.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(res).Encode(errorResponseFromError(err))
-		case scanner.ErrVulnerabiltyReportNotReady:
-			res.Header().Set("Refresh-After", "120")
+			_ = json.NewEncoder(res).Encode(errorResponseFromError(err))
+		case scanner.ErrVulnerabilityReportNotReady:
+			res.Header().Set("Refresh-After", fmt.Sprintf("%d", DefaultRefreshTimeInSeconds))
 			res.Header().Set("Location", req.URL.String())
 			res.WriteHeader(http.StatusFound)
 		default:
 			res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 			res.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(res).Encode(errorResponseFromError(err))
+			_ = json.NewEncoder(res).Encode(errorResponseFromError(err))
 		}
 		return
 	}
 
 	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
-	json.NewEncoder(res).Encode(vulnerabilityReport)
+	_ = json.NewEncoder(res).Encode(vulnerabilityReport)
 }
 
 func (h *requestHandler) logRequestError(req *http.Request, err error) {

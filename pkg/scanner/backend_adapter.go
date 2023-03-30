@@ -79,7 +79,7 @@ func getImageFrom(req harbor.ScanRequest) string {
 	return result + fmt.Sprintf(":%s", req.Artifact.Tag)
 }
 
-func (b *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
+func (b *backendAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequestID) (harbor.VulnerabilityReport, error) {
 	repository, shaDigest := b.DecodeScanResponseID(scanResponseID)
 
 	vulnerabilityReport, err := b.secureClient.GetVulnerabilities(shaDigest)
@@ -87,8 +87,8 @@ func (b *backendAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.V
 		switch err {
 		case secure.ErrImageNotFound:
 			return harbor.VulnerabilityReport{}, ErrScanRequestIDNotFound
-		case secure.ErrVulnerabiltyReportNotReady:
-			return harbor.VulnerabilityReport{}, ErrVulnerabiltyReportNotReady
+		case secure.ErrVulnerabilityReportNotReady:
+			return harbor.VulnerabilityReport{}, ErrVulnerabilityReportNotReady
 		}
 		return harbor.VulnerabilityReport{}, err
 	}

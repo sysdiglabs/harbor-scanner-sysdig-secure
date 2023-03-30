@@ -62,7 +62,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 				_, err := client.GetVulnerabilities(response.ImageDigest)
 
-				Expect(err).To(MatchError(secure.ErrVulnerabiltyReportNotReady))
+				Expect(err).To(MatchError(secure.ErrVulnerabilityReportNotReady))
 			})
 		})
 	})

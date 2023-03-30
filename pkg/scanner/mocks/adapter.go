@@ -5,35 +5,36 @@
 package mocks
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	harbor "github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
-	reflect "reflect"
 )
 
-// MockAdapter is a mock of Adapter interface
+// MockAdapter is a mock of Adapter interface.
 type MockAdapter struct {
 	ctrl     *gomock.Controller
 	recorder *MockAdapterMockRecorder
 }
 
-// MockAdapterMockRecorder is the mock recorder for MockAdapter
+// MockAdapterMockRecorder is the mock recorder for MockAdapter.
 type MockAdapterMockRecorder struct {
 	mock *MockAdapter
 }
 
-// NewMockAdapter creates a new mock instance
+// NewMockAdapter creates a new mock instance.
 func NewMockAdapter(ctrl *gomock.Controller) *MockAdapter {
 	mock := &MockAdapter{ctrl: ctrl}
 	mock.recorder = &MockAdapterMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockAdapter) EXPECT() *MockAdapterMockRecorder {
 	return m.recorder
 }
 
-// GetMetadata mocks base method
+// GetMetadata mocks base method.
 func (m *MockAdapter) GetMetadata() (harbor.ScannerAdapterMetadata, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMetadata")
@@ -42,13 +43,28 @@ func (m *MockAdapter) GetMetadata() (harbor.ScannerAdapterMetadata, error) {
 	return ret0, ret1
 }
 
-// GetMetadata indicates an expected call of GetMetadata
+// GetMetadata indicates an expected call of GetMetadata.
 func (mr *MockAdapterMockRecorder) GetMetadata() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMetadata", reflect.TypeOf((*MockAdapter)(nil).GetMetadata))
 }
 
-// Scan mocks base method
+// GetVulnerabilityReport mocks base method.
+func (m *MockAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequestID) (harbor.VulnerabilityReport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVulnerabilityReport", scanResponseID)
+	ret0, _ := ret[0].(harbor.VulnerabilityReport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVulnerabilityReport indicates an expected call of GetVulnerabilityReport.
+func (mr *MockAdapterMockRecorder) GetVulnerabilityReport(scanResponseID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilityReport", reflect.TypeOf((*MockAdapter)(nil).GetVulnerabilityReport), scanResponseID)
+}
+
+// Scan mocks base method.
 func (m *MockAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Scan", req)
@@ -57,23 +73,8 @@ func (m *MockAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) 
 	return ret0, ret1
 }
 
-// Scan indicates an expected call of Scan
+// Scan indicates an expected call of Scan.
 func (mr *MockAdapterMockRecorder) Scan(req interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Scan", reflect.TypeOf((*MockAdapter)(nil).Scan), req)
-}
-
-// GetVulnerabilityReport mocks base method
-func (m *MockAdapter) GetVulnerabilityReport(scanResponseID string) (harbor.VulnerabilityReport, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetVulnerabilityReport", scanResponseID)
-	ret0, _ := ret[0].(harbor.VulnerabilityReport)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetVulnerabilityReport indicates an expected call of GetVulnerabilityReport
-func (mr *MockAdapterMockRecorder) GetVulnerabilityReport(scanResponseID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilityReport", reflect.TypeOf((*MockAdapter)(nil).GetVulnerabilityReport), scanResponseID)
 }

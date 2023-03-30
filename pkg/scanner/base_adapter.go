@@ -74,12 +74,12 @@ func lastSync(feeds []secure.Feed) time.Time {
 
 func (b *BaseAdapter) CreateScanResponse(repository string, shaDigest string) harbor.ScanResponse {
 	return harbor.ScanResponse{
-		ID: base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s|%s", repository, shaDigest))),
+		ID: harbor.ScanRequestID(base64.URLEncoding.EncodeToString([]byte(fmt.Sprintf("%s|%s", repository, shaDigest)))),
 	}
 }
 
-func (b *BaseAdapter) DecodeScanResponseID(scanResponseID string) (repository string, shaDigest string) {
-	plain, _ := base64.URLEncoding.DecodeString(scanResponseID)
+func (b *BaseAdapter) DecodeScanResponseID(scanResponseID harbor.ScanRequestID) (repository string, shaDigest string) {
+	plain, _ := base64.URLEncoding.DecodeString(string(scanResponseID))
 	splitted := strings.Split(string(plain), "|")
 
 	return splitted[0], splitted[1]
@@ -91,7 +91,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 		Severity: harbor.UNKNOWN,
 	}
 
-	vulnerabilitiesDescription, _ := b.getVulnerablitiesDescriptionFrom(vulnerabilityReport.Vulnerabilities)
+	vulnerabilitiesDescription, _ := b.getVulnerabilitiesDescriptionFrom(vulnerabilityReport.Vulnerabilities)
 
 	for _, vulnerability := range vulnerabilityReport.Vulnerabilities {
 		vulnerabilityItem := toHarborVulnerabilityItem(vulnerability, vulnerabilitiesDescription)
@@ -119,8 +119,8 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	return result, nil
 }
 
-func (b *BaseAdapter) getVulnerablitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
-	ids := []string{}
+func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
+	ids := make([]string, 0, len(vulnerabilities))
 	for _, vulnerability := range vulnerabilities {
 		ids = append(ids, vulnerability.Vuln)
 	}
