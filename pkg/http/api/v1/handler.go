@@ -115,6 +115,15 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
+	jsonData, err := json.Marshal(vulnerabilityReport)
+	if err != nil {
+		fmt.Println("Error marshalling to JSON:", err)
+		return
+	}
+
+	// Use fmt.Printf to print the JSON string
+	fmt.Printf("%s\n", jsonData)
+
 	_ = json.NewEncoder(res).Encode(vulnerabilityReport)
 }
 

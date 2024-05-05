@@ -2,12 +2,12 @@ package scanner
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"strings"
-	"time"
-
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
+	"strings"
+	"time"
 )
 
 type BaseAdapter struct {
@@ -15,6 +15,7 @@ type BaseAdapter struct {
 
 	scanner                *harbor.Scanner
 	scannerAdapterMetadata *harbor.ScannerAdapterMetadata
+	logger                 Logger
 }
 
 func (b *BaseAdapter) getScanner() *harbor.Scanner {
@@ -87,8 +88,9 @@ func (b *BaseAdapter) DecodeScanResponseID(scanResponseID harbor.ScanRequestID) 
 
 func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest string, vulnerabilityReport *secure.VulnerabilityReport) (harbor.VulnerabilityReport, error) {
 	result := harbor.VulnerabilityReport{
-		Scanner:  b.getScanner(),
-		Severity: harbor.UNKNOWN,
+		Scanner:     b.getScanner(),
+		Severity:    harbor.UNKNOWN,
+		GeneratedAt: time.Now(),
 	}
 
 	vulnerabilitiesDescription, _ := b.getVulnerabilitiesDescriptionFrom(vulnerabilityReport.Vulnerabilities)
@@ -100,16 +102,27 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 		if severities[result.Severity] < severities[vulnerabilityItem.Severity] {
 			result.Severity = vulnerabilityItem.Severity
 		}
+		vulnJSON, _ := json.MarshalIndent(vulnerabilityItem, "", "    ")
+		// Echoing out the payload we are sending to Harbor
+		b.logger.Debugf("ToHarborVulnerabilityReport:: %s\n", string(vulnJSON))
 	}
 
 	scanResponse, _ := b.secureClient.GetImage(shaDigest)
-	for _, imageDetail := range scanResponse.ImageDetail {
-		if imageDetail.Repository == repository {
-			result.GeneratedAt = imageDetail.CreatedAt
+
+	for _, imageDetail := range scanResponse.Data {
+		parts := strings.Split(imageDetail.ImagePullString, "@")
+		repoWithTag := parts[0]
+		hash := parts[1]
+		firstSlash := strings.Index(repoWithTag, "/")
+		lastColon := strings.LastIndex(repoWithTag, ":")
+		repo := repoWithTag[firstSlash+1 : lastColon]
+		tag := repoWithTag[lastColon+1:]
+		if repo == repository {
+			result.GeneratedAt = imageDetail.StoredAt
 			result.Artifact = &harbor.Artifact{
-				Repository: imageDetail.Repository,
-				Digest:     imageDetail.Digest,
-				Tag:        imageDetail.Tag,
+				Repository: repo,
+				Digest:     hash,
+				Tag:        tag,
 				MimeType:   harbor.DockerDistributionManifestMimeType,
 			}
 			return result, nil
@@ -120,12 +133,22 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 }
 
 func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
-	ids := make([]string, 0, len(vulnerabilities))
-	for _, vulnerability := range vulnerabilities {
-		ids = append(ids, vulnerability.Vuln)
-	}
 
-	return b.secureClient.GetVulnerabilityDescription(ids...)
+	result := make(map[string]string)
+
+	// Query the descriptions (and URL) from the v2 endpoint instead
+	for idx, vulnerability := range vulnerabilities {
+		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Processing %d/%d", idx, len(vulnerabilities))
+		v2, err := b.secureClient.GetVulnerabilityDescriptionV2(vulnerability.ResultId, vulnerability.VulnId)
+		if err != nil {
+			return nil, err
+		}
+		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Vuln: '%s', URL: '%s', Description '%s", vulnerability.Vuln, v2.URL, v2.Description)
+		vulnerabilities[idx].URL = v2.URL
+		result[vulnerability.Vuln] = v2.Description
+	}
+	b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Finished getting descriptions")
+	return result, nil
 }
 
 func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability, descriptions map[string]string) harbor.VulnerabilityItem {
@@ -137,6 +160,16 @@ func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability, descriptions
 		FixVersion:  fixVersionFor(vulnerability),
 		Severity:    harbor.Severity(vulnerability.Severity),
 		Links:       []string{vulnerability.URL},
+		VendorAttributes: harbor.CVSS{
+			CvssKey: harbor.NVDKey{
+				NVD: harbor.CVSSData{
+					ScoreV3:  vulnerability.NVDData[0].CVSSV3.BaseScore,
+					VectorV3: "",
+					ScoreV2:  vulnerability.NVDData[0].CVSSV2.BaseScore,
+					VectorV2: "",
+				},
+			},
+		},
 	}
 }
 

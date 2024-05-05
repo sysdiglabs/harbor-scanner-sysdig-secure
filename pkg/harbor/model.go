@@ -7,7 +7,7 @@ const (
 	OCIImageManifestMimeType           = "application/vnd.oci.image.manifest.v1+json"
 	DockerDistributionManifestMimeType = "application/vnd.docker.distribution.manifest.v2+json"
 	ScanResponseMimeType               = "application/vnd.scanner.adapter.scan.response+json; version=1.0"
-	ScanReportMimeType                 = "application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0"
+	ScanReportMimeType                 = "application/vnd.security.vulnerability.report; version=1.1"
 	ScanAdapterErrorMimeType           = "application/vnd.scanner.adapter.error+json; version=1.0"
 )
 
@@ -78,11 +78,28 @@ const (
 )
 
 type VulnerabilityItem struct {
-	ID          string   `json:"id,omitempty"`
-	Package     string   `json:"package,omitempty"`
-	Version     string   `json:"version,omitempty"`
-	FixVersion  string   `json:"fix_version,omitempty"`
-	Severity    Severity `json:"severity,omitempty"`
-	Description string   `json:"description,omitempty"`
-	Links       []string `json:"links,omitempty"`
+	ID               string   `json:"id,omitempty"`
+	Package          string   `json:"package,omitempty"`
+	Version          string   `json:"version,omitempty"`
+	FixVersion       string   `json:"fix_version,omitempty"`
+	Severity         Severity `json:"severity,omitempty"`
+	Description      string   `json:"description,omitempty"`
+	Links            []string `json:"links,omitempty"`
+	CVSS             CVSSData `json:"preferred_cvss"`
+	VendorAttributes CVSS     `json:"vendor_attributes"`
+}
+
+type CVSS struct {
+	CvssKey NVDKey `json:"CVSS"`
+}
+
+type NVDKey struct {
+	NVD CVSSData `json:"Base_Score"`
+}
+
+type CVSSData struct {
+	ScoreV3  float32 `json:"V3Score"`
+	ScoreV2  float32 `json:"V2Score"`
+	VectorV3 string  `json:"V3Vector"`
+	VectorV2 string  `json:"V2Vector"`
 }

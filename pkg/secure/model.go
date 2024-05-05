@@ -66,9 +66,11 @@ type Vulnerability struct {
 	PackagePath    string     `json:"package_path"`
 	PackageType    string     `json:"package_type"`
 	PackageVersion string     `json:"package_version"`
+	ResultId       string     // Not serialised (Notice the S not Z, we use 'proper' english :)
 	Severity       string     `json:"severity"`
 	URL            string     `json:"url"`
 	Vuln           string     `json:"vuln"`
+	VulnId         string     // Not serialised either, used for description querying
 }
 
 type NVDData struct {

@@ -123,7 +123,7 @@ func (mr *MockClientMockRecorder) GetVulnerabilities(shaDigest interface{}) *gom
 }
 
 // GetVulnerabilityDescription mocks base method.
-func (m *MockClient) GetVulnerabilityDescription(vulnerabilityIDs ...string) (map[string]string, error) {
+func (m *MockClient) GetVulnerabilityDescription(resultId string, vulnerabilityIDs ...string) (map[string]string, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{}
 	for _, a := range vulnerabilityIDs {
