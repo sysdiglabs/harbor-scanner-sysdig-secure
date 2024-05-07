@@ -23,13 +23,13 @@ provide. Be aware that you need to provide the Sysdig Secure API token when
 you type the `helm install` command.
 
 ```
-$ helm repo add sysdiglabs https://sysdiglabs.github.io/charts
-"sysdiglabs" has been added to your repositories
+$ helm repo add aaronm-sysdig https://aaronm-sysdig.github.io/charts
+"aaronm-sysdig" has been added to your repositories
 
 $ kubectl create namespace harbor-scanner-sysdig-secure
 namespace/harbor-scanner-sysdig-secure created
 
-$ helm -n harbor-scanner-sysdig-secure install harbor-scanner-sysdig-secure --set sysdig.secure.apiToken=XXX sysdiglabs/harbor-scanner-sysdig-secure
+$ helm -n harbor-scanner-sysdig-secure install harbor-scanner-sysdig-secure --set sysdig.secure.apiToken=XXX aaronm-sysdig/harbor-scanner-sysdig-secure
 NAME: harbor-scanner-sysdig-secure
 LAST DEPLOYED: Tue Jun  9 13:38:12 2020
 NAMESPACE: harbor-scanner-sysdig-secure
