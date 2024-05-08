@@ -105,15 +105,21 @@ func (s *client) doRequest(method string, url string, payload []byte) (*http.Res
 		if err != nil {
 			return nil, emptyBody, err
 		}
+		if response.Body != nil {
+			body, err := io.ReadAll(response.Body)
+			closeErr := response.Body.Close()
+			if err != nil {
+				return nil, nil, err
+			}
+			if closeErr != nil {
+				return nil, nil, closeErr
+			}
 
-		body, err := io.ReadAll(response.Body)
-		err = response.Body.Close()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if response.StatusCode != http.StatusTooManyRequests {
-			return response, body, err
+			if response.StatusCode != http.StatusTooManyRequests {
+				return response, body, nil
+			}
+		} else {
+			return nil, emptyBody, fmt.Errorf("response body is nil")
 		}
 		fmt.Printf("doRequest:: Got '%d'\n", response.StatusCode)
 		backoff := time.Duration(int64(math.Pow(2, float64(attempt)))) * baseDelay

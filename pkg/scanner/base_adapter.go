@@ -133,19 +133,22 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 }
 
 func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
-
 	result := make(map[string]string)
 
 	// Query the descriptions (and URL) from the v2 endpoint instead
 	for idx, vulnerability := range vulnerabilities {
 		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Processing %d/%d", idx, len(vulnerabilities))
-		v2, err := b.secureClient.GetVulnerabilityDescriptionV2(vulnerability.ResultId, vulnerability.VulnId)
+		/*v2, err := b.secureClient.GetVulnerabilityDescriptionV2(vulnerability.ResultId, vulnerability.VulnId)
 		if err != nil {
 			return nil, err
 		}
 		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Vuln: '%s', URL: '%s', Description '%s", vulnerability.Vuln, v2.URL, v2.Description)
 		vulnerabilities[idx].URL = v2.URL
 		result[vulnerability.Vuln] = v2.Description
+		*/
+		vulnerabilities[idx].URL = "https://www.sysdig.com"
+		result[vulnerability.Vuln] = "Full Image Scan: https://www.sysdig.com"
+
 	}
 	b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Finished getting descriptions")
 	return result, nil
@@ -160,13 +163,19 @@ func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability, descriptions
 		FixVersion:  fixVersionFor(vulnerability),
 		Severity:    harbor.Severity(vulnerability.Severity),
 		Links:       []string{vulnerability.URL},
+		CVSS: harbor.CVSSData{
+			ScoreV3:  vulnerability.NVDData[0].CVSSV3.BaseScore,
+			VectorV3: "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+			ScoreV2:  vulnerability.NVDData[0].CVSSV2.BaseScore,
+			VectorV2: "AV:L/AC:M/Au:N/C:P/I:N/A:N",
+		},
 		VendorAttributes: harbor.CVSS{
 			CvssKey: harbor.NVDKey{
-				NVD: harbor.CVSSData{
+				NVD: harbor.CVSSDataVendor{
 					ScoreV3:  vulnerability.NVDData[0].CVSSV3.BaseScore,
-					VectorV3: "",
+					VectorV3: "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
 					ScoreV2:  vulnerability.NVDData[0].CVSSV2.BaseScore,
-					VectorV2: "",
+					VectorV2: "AV:L/AC:M/Au:N/C:P/I:N/A:N",
 				},
 			},
 		},

@@ -94,10 +94,17 @@ type CVSS struct {
 }
 
 type NVDKey struct {
-	NVD CVSSData `json:"Base_Score"`
+	NVD CVSSDataVendor `json:"Base_Score"`
 }
 
 type CVSSData struct {
+	ScoreV3  float32 `json:"score_v3"`
+	ScoreV2  float32 `json:"score_v2"`
+	VectorV3 string  `json:"vector_v3"`
+	VectorV2 string  `json:"vector_v2"`
+}
+
+type CVSSDataVendor struct {
 	ScoreV3  float32 `json:"V3Score"`
 	ScoreV2  float32 `json:"V2Score"`
 	VectorV3 string  `json:"V3Vector"`
