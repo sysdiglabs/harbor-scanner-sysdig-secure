@@ -9,11 +9,9 @@ The Sysdig Secure Harbor Scanner Adapter enables Harbor to use Sysdig Secure sca
 This adapter also provides a service that translates the Harbor scanning API requests into Sysdig Secure API calls, allowing Harbor to retrieve vulnerability reports and additional information from the scanning adapter. This information will be presented in the Harbor UI, transparently for the user.
 
 ## Getting Started
-
 You can follow a [detailed guide to deploy the Scanner Adapter](docs/install.md).
 
 ### CLI Scanning
-
 Using CLI scanning, the scanning operation itself will be triggered and performed on your own infrastructure. It spawns a Kubernetes job when a new image is pushed, this job will communicate **only** the container metadata to the Sysdig Secure Backend, which will perform the evaluation based on the configured image [scanning policies](https://docs.sysdig.com/en/manage-scanning-policies.html).
 
 ## Configuration

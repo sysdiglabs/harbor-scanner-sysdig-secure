@@ -18,7 +18,6 @@ settings. Is just below the Get Started sidebar item.
 ![Getting Secure API Token](images/getting_secure_api_token.png)
 
 ### Obtaining the Sysdig Secure API Token
-
 Your URL is listed in the address bar of your browser.  If you login to `https://secure.sysdig.com` then that is your URL.
 If you login to `https://app.au1.sysdig.com` for the AP region, then this is the URL you use.
 
