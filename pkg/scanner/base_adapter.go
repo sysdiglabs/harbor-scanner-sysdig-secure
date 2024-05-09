@@ -163,7 +163,7 @@ func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability, descriptions
 		Version:     vulnerability.PackageVersion,
 		FixVersion:  fixVersionFor(vulnerability),
 		Severity:    harbor.Severity(vulnerability.Severity),
-		Links:       []string{vulnerability.URL, fmt.Sprintf("https://nvd.nist.gov/vuln/detail/%s)", vulnerability.Vuln), fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", vulnerability.Vuln)},
+		Links:       []string{vulnerability.URL, fmt.Sprintf("https://nvd.nist.gov/vuln/detail/%s", vulnerability.Vuln), fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", vulnerability.Vuln)},
 		CVSS: harbor.CVSSData{
 			ScoreV3:  vulnerability.NVDData[0].CVSSV3.BaseScore,
 			VectorV3: "",
