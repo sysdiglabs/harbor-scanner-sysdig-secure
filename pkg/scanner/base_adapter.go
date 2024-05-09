@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
+	"os"
 	"strings"
 	"time"
 )
@@ -137,7 +138,7 @@ func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secur
 
 	// Query the descriptions (and URL) from the v2 endpoint instead
 	for idx, vulnerability := range vulnerabilities {
-		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Processing %d/%d", idx, len(vulnerabilities))
+		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Processing %d/%d", idx, len(vulnerabilities)-1)
 		/*v2, err := b.secureClient.GetVulnerabilityDescriptionV2(vulnerability.ResultId, vulnerability.VulnId)
 		if err != nil {
 			return nil, err
@@ -146,8 +147,8 @@ func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secur
 		vulnerabilities[idx].URL = v2.URL
 		result[vulnerability.Vuln] = v2.Description
 		*/
-		vulnerabilities[idx].URL = "https://www.sysdig.com"
-		result[vulnerability.Vuln] = "Full Image Scan: https://www.sysdig.com"
+		vulnerabilities[idx].URL = fmt.Sprintf("%s/secure/#/vulnerabilities/results/%s/overview", os.Getenv("SECURE_URL"), vulnerability.ResultId)
+		result[vulnerability.Vuln] = fmt.Sprintf("Disclosure Date: '%s', Exploitable: '%v' ", vulnerability.DisclosureDate, vulnerability.Exploitable)
 
 	}
 	b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Finished getting descriptions")
@@ -162,20 +163,20 @@ func toHarborVulnerabilityItem(vulnerability *secure.Vulnerability, descriptions
 		Version:     vulnerability.PackageVersion,
 		FixVersion:  fixVersionFor(vulnerability),
 		Severity:    harbor.Severity(vulnerability.Severity),
-		Links:       []string{vulnerability.URL},
+		Links:       []string{vulnerability.URL, "", fmt.Sprintf("https://cve.mitre.org/cgi-bin/cvename.cgi?name=%s", vulnerability.Vuln)},
 		CVSS: harbor.CVSSData{
 			ScoreV3:  vulnerability.NVDData[0].CVSSV3.BaseScore,
-			VectorV3: "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+			VectorV3: "",
 			ScoreV2:  vulnerability.NVDData[0].CVSSV2.BaseScore,
-			VectorV2: "AV:L/AC:M/Au:N/C:P/I:N/A:N",
+			VectorV2: "",
 		},
 		VendorAttributes: harbor.CVSS{
 			CvssKey: harbor.NVDKey{
 				NVD: harbor.CVSSDataVendor{
 					ScoreV3:  vulnerability.NVDData[0].CVSSV3.BaseScore,
-					VectorV3: "CVSS:3.0/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+					VectorV3: "",
 					ScoreV2:  vulnerability.NVDData[0].CVSSV2.BaseScore,
-					VectorV2: "AV:L/AC:M/Au:N/C:P/I:N/A:N",
+					VectorV2: "",
 				},
 			},
 		},

@@ -56,6 +56,7 @@ type VulnerabilityReport struct {
 }
 
 type Vulnerability struct {
+	Exploitable    bool       `json:"exploitable"`
 	Feed           string     `json:"feed"`
 	FeedGroup      string     `json:"feed_group"`
 	Fix            string     `json:"fix"`
@@ -70,7 +71,8 @@ type Vulnerability struct {
 	Severity       string     `json:"severity"`
 	URL            string     `json:"url"`
 	Vuln           string     `json:"vuln"`
-	VulnId         string     // Not serialised either, used for description querying
+	DisclosureDate string     `json:"disclosureDate"`
+	//VulnId         string     // Not serialised either, used for description querying
 }
 
 type NVDData struct {
