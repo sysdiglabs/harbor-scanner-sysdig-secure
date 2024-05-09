@@ -46,21 +46,6 @@ kubectl --namespace harbor-scanner-sysdig-secure port-forward $POD_NAME 8080:80
 And that's it. The new scanner adapter is deployed. Now is time to tell Harbor
 to use it, and you can find [how to configure Harbor to use Sysdig Secure Scanner Adapter](#configuring-harbor-to-use-sysdig-secure-scanner-adapter) a few lines below.
 
-### Using Backend Scanning instead of Inline Scanning
-
-This mode is not recommended and it is supported only for legacy purposes.
-
-You will need to disable inline scan by setting `inlineScanning.enabled: false` in the values.yaml:
-
-```yaml
-sysdig:
-  secure:
-    apiToken: XXX
-
-inlineScanning:
-  enabled: false
-```
-
 You already know [how to get the Sysdig Secure API Token](#obtaining-the-sysdig-secure-api-token).
 
 ## Configuring Harbor to use Sysdig Secure Scanner Adapter
