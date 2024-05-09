@@ -136,17 +136,8 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
 	result := make(map[string]string)
 
-	// Query the descriptions (and URL) from the v2 endpoint instead
 	for idx, vulnerability := range vulnerabilities {
 		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Processing %d/%d", idx, len(vulnerabilities)-1)
-		/*v2, err := b.secureClient.GetVulnerabilityDescriptionV2(vulnerability.ResultId, vulnerability.VulnId)
-		if err != nil {
-			return nil, err
-		}
-		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Vuln: '%s', URL: '%s', Description '%s", vulnerability.Vuln, v2.URL, v2.Description)
-		vulnerabilities[idx].URL = v2.URL
-		result[vulnerability.Vuln] = v2.Description
-		*/
 		vulnerabilities[idx].URL = fmt.Sprintf("%s/secure/#/vulnerabilities/results/%s/overview", os.Getenv("SECURE_URL"), vulnerability.ResultId)
 		result[vulnerability.Vuln] = fmt.Sprintf("Disclosure Date: '%s', Exploitable: '%v' ", vulnerability.DisclosureDate, vulnerability.Exploitable)
 

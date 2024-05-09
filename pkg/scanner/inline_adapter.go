@@ -263,7 +263,11 @@ func (i *inlineAdapter) collectPodResults(job *batchv1.Job) (*podResults, error)
 		return nil, err
 	}
 
-	defer podLogs.Close()
+	defer func(podLogs io.ReadCloser) {
+		if err := podLogs.Close(); err != nil {
+			return
+		}
+	}(podLogs)
 
 	logBytes, err := io.ReadAll(podLogs)
 	if err != nil {

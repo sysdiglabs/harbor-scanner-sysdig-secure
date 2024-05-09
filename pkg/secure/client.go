@@ -157,19 +157,6 @@ type V2ScanDataItem struct {
 	PolicyEvaluationsResult string `json:"policyEvaluationsResult"`
 }
 
-type imageScanResultResponse struct {
-	Results []*imageScanResult `json:"results"`
-}
-
-type imageScanResult struct {
-	AnalysisStatus string `json:"analysisStatus"`
-	AnalyzedAt     int    `json:"analyzedAt"`
-	CreatedAt      int    `json:"createdAt"`
-	ImageDigest    string `json:"imageDigest"`
-	ImageId        string `json:"imageId"`
-	FullTag        string `json:"fullTag"`
-}
-
 type V1BetaScanResult struct {
 	Result V1BetaImageScanResult `json:"result"`
 }
@@ -232,59 +219,8 @@ type V1BetaCvssValue struct {
 	Vector  string  `json:"vector"`
 }
 
-/*type _V2VulnerabilityResponse struct {
-	Page V2PageData   `json:"page"`
-	Data []V2DataItem `json:"data"`
-}
-
-type _V2PageData struct {
-	Returned int `json:"returned"`
-	Offset   int `json:"offset"`
-	Matched  int `json:"matched"`
-}
-
-type _V2DataItem struct {
-	ID             string          `json:"id"`
-	Vuln           V2Vulnerability `json:"vuln"`
-	Package        V2Package       `json:"package"`
-	FixedInVersion string          `json:"fixedInVersion"`
-}
-
-type _V2Vulnerability struct {
-	Name           string        `json:"name"`
-	Severity       int           `json:"severity"`
-	CvssVersion    string        `json:"cvssVersion"`
-	CvssScore      float32       `json:"cvssScore"`
-	Exploitable    bool          `json:"exploitable"`
-	Cisakev        bool          `json:"cisakev"`
-	DisclosureDate time.Time     `json:"disclosureDate"`
-	AcceptedRisks  []interface{} `json:"acceptedRisks"` // Use []interface{} if the risks vary in type or are unknown.
-}
-
-type _V2Package struct {
-	ID      string `json:"id"`
-	Name    string `json:"name"`
-	Version string `json:"version"`
-	Type    string `json:"type"`
-	Running bool   `json:"running"`
-}*/
-
 func (s *client) retrieveFullVulnerabilityReport(resultID string) (*V1BetaScanResult, error) {
 	var result V1BetaScanResult
-	//var partialResult V1BetaScanResult
-
-	/*offset := 0
-	limit := 100
-	baseUrl := fmt.Sprintf("/api/scanning/scanresults/v2/results/%s/vulnPkgs", resultID)
-	queryParams := url.Values{}
-	queryParams.Set("limit", strconv.Itoa(limit))
-	queryParams.Set("order", "asc")
-	queryParams.Set("sort", "vulnSeverity")*/
-
-	//var allData []V2DataItem
-	//for {
-	//queryParams.Set("offset", strconv.Itoa(offset))
-	//fullUrl := fmt.Sprintf("%s?%s", baseUrl, queryParams.Encode())
 	response, body, err := s.doRequest(http.MethodGet, fmt.Sprintf("/secure/vulnerability/v1beta1/results/%s", resultID), nil)
 	if err != nil {
 		return nil, err
@@ -298,15 +234,6 @@ func (s *client) retrieveFullVulnerabilityReport(resultID string) (*V1BetaScanRe
 		return nil, err
 	}
 
-	/*allData = append(allData, partialResult.Data...)
-	if partialResult.Page.Returned < limit {
-		break
-	}*/
-
-	//offset += limit
-	//}
-
-	//result.Data = allData
 	return &result, nil
 }
 
@@ -355,13 +282,6 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 		VulnerabilityType: "all",
 		Vulnerabilities:   []*Vulnerability{},
 	}
-	/*severityMap := map[int]string{
-		2: "Critical",
-		3: "High",
-		5: "Medium",
-		6: "Low",
-		7: "Negligible",
-	}*/
 
 	for _, packageRow := range V1BetaScanResult.Result.Packages {
 		for _, vulnRow := range packageRow.Vulns {
