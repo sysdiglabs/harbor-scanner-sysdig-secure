@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+var (
+	generatedAt = time.Now()
+)
+
 type BaseAdapter struct {
 	secureClient secure.Client
 
@@ -91,7 +95,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	result := harbor.VulnerabilityReport{
 		Scanner:     b.getScanner(),
 		Severity:    harbor.UNKNOWN,
-		GeneratedAt: time.Now(),
+		GeneratedAt: generatedAt,
 	}
 
 	vulnerabilitiesDescription, _ := b.getVulnerabilitiesDescriptionFrom(vulnerabilityReport.Vulnerabilities)

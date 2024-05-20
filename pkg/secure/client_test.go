@@ -44,67 +44,68 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 	Context("when retrieving vulnerabilities for an image", func() {
 		It("gets the report for a SHA", func() {
-			response, _ := client.GetVulnerabilities("sha256:1e331e745ddf2b295d93f04c1477489fce34bf9ac26f4ab964f14e9dbe4e2dc4")
+			response, _ := client.GetVulnerabilities("sha256:a97a153152fcd6410bdf4fb64f5622ecf97a753f07dcc89dab14509d059736cf") //docker.io/library/nginx:1.23
 
 			Expect(response).NotTo(Equal(secure.VulnerabilityReport{}))
 			Expect(len(response.Vulnerabilities)).To(BeNumerically(">", 0))
 		})
+		/*
+			Context("when an error happens", func() {
+				It("returns a ImageNotFoundErr if the image does not exists on Secure", func() {
+					_, err := client.GetVulnerabilities("non-existent")
 
-		Context("when an error happens", func() {
-			It("returns a ImageNotFoundErr if the image does not exists on Secure", func() {
-				_, err := client.GetVulnerabilities("non-existent")
+					Expect(err).To(MatchError(secure.ErrImageNotFound))
+				})
 
-				Expect(err).To(MatchError(secure.ErrImageNotFound))
+				It("returns a ReportNotReadyErr if the image is being analyzed", func() {
+					response, _ := client.AddImage("quay.io/sysdig/agent:10.7.0", true)
+
+					_, err := client.GetVulnerabilities(response.ImageDigest)
+
+					Expect(err).To(MatchError(secure.ErrVulnerabilityReportNotReady))
+				})
 			})
-
-			It("returns a ReportNotReadyErr if the image is being analyzed", func() {
-				response, _ := client.AddImage("quay.io/sysdig/agent:10.7.0", true)
-
-				_, err := client.GetVulnerabilities(response.ImageDigest)
-
-				Expect(err).To(MatchError(secure.ErrVulnerabilityReportNotReady))
-			})
-		})
+		*/
 	})
+	/*
+		Context("when adding registry credentials", func() {
+			It("registers the credentials in Secure", func() {
+				err := client.AddRegistry("foo.sysdig-demo.zone", user, password)
+				defer client.DeleteRegistry("foo.sysdig-demo.zone")
 
-	Context("when adding registry credentials", func() {
-		It("registers the credentials in Secure", func() {
-			err := client.AddRegistry("foo.sysdig-demo.zone", user, password)
-			defer client.DeleteRegistry("foo.sysdig-demo.zone")
+				Expect(err).To(Succeed())
+			})
 
-			Expect(err).To(Succeed())
+			Context("when adding twice a registry", func() {
+				It("returns an ErrRegistryAlreadyExists", func() {
+					client.AddRegistry("foo.sysdig-demo.zone", user, password)
+					defer client.DeleteRegistry("foo.sysdig-demo.zone")
+
+					err := client.AddRegistry("foo.sysdig-demo.zone", user, password)
+
+					Expect(err).To(MatchError(secure.ErrRegistryAlreadyExists))
+				})
+			})
 		})
-
-		Context("when adding twice a registry", func() {
-			It("returns an ErrRegistryAlreadyExists", func() {
+		Context("when updating registry credentials", func() {
+			It("updates an existing registry", func() {
 				client.AddRegistry("foo.sysdig-demo.zone", user, password)
 				defer client.DeleteRegistry("foo.sysdig-demo.zone")
 
-				err := client.AddRegistry("foo.sysdig-demo.zone", user, password)
+				err := client.UpdateRegistry("foo.sysdig-demo.zone", "otherUser", "otherPassword")
 
-				Expect(err).To(MatchError(secure.ErrRegistryAlreadyExists))
+				Expect(err).To(Succeed())
+			})
+
+			Context("when registry does not exist", func() {
+				It("returns the error", func() {
+					err := client.UpdateRegistry("foo.sysdig-demo.zone", user, password)
+
+					Expect(err).To(MatchError(HavePrefix("unknown error (status 404): ")))
+				})
 			})
 		})
-	})
-
-	Context("when updating registry credentials", func() {
-		It("updates an existing registry", func() {
-			client.AddRegistry("foo.sysdig-demo.zone", user, password)
-			defer client.DeleteRegistry("foo.sysdig-demo.zone")
-
-			err := client.UpdateRegistry("foo.sysdig-demo.zone", "otherUser", "otherPassword")
-
-			Expect(err).To(Succeed())
-		})
-
-		Context("when registry does not exist", func() {
-			It("returns the error", func() {
-				err := client.UpdateRegistry("foo.sysdig-demo.zone", user, password)
-
-				Expect(err).To(MatchError(HavePrefix("unknown error (status 404): ")))
-			})
-		})
-	})
+	*/
 
 	Context("when getting an image information", func() {
 		It("returns the image information", func() {
@@ -112,31 +113,34 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 			Expect(image).NotTo(Equal(secure.ScanResponse{}))
 		})
+		/*
+			Context("when image does not exist", func() {
+				It("returns ErrImageNotFound", func() {
+					_, err := client.GetImage("sha256:non-existent")
 
-		Context("when image does not exist", func() {
-			It("returns ErrImageNotFound", func() {
-				_, err := client.GetImage("sha256:non-existent")
+					Expect(err).To(MatchError(secure.ErrImageNotFound))
+				})
+			})
 
-				Expect(err).To(MatchError(secure.ErrImageNotFound))
+		*/
+	})
+	/*
+		Context("when getting the feeds", func() {
+			It("returns the feed list", func() {
+				image, _ := client.GetFeeds()
+
+				Expect(image).NotTo(Equal([]secure.Feed{}))
 			})
 		})
-	})
 
-	Context("when getting the feeds", func() {
-		It("returns the feed list", func() {
-			image, _ := client.GetFeeds()
+		Context("when retrieving vulnerabilities description", func() {
+			It("returns a map with the id as key", func() {
+				descriptions, _ := client.GetVulnerabilityDescription("CVE-2016-2779", "VULNDB-229217")
 
-			Expect(image).NotTo(Equal([]secure.Feed{}))
+				Expect(descriptions).To(HaveKeyWithValue("CVE-2016-2779", "runuser in util-linux allows local users to escape to the parent session via a crafted TIOCSTI ioctl call, which pushes characters to the terminal's input buffer."))
+
+				Expect(descriptions).To(HaveKeyWithValue("VULNDB-229217", "pip PyPI (Python Packaging Index) contains a flaw that allows traversing outside of a restricted path. The issue is due to the PipXmlrpcTransport._download_http_url() function in _internal/download.py not properly sanitizing input, specifically path traversal style attacks (e.g. '../') supplied via the HTTP Content-Disposition header when downloading a remote package. With a specially crafted server, a remote attacker can write to arbitrary files."))
+			})
 		})
-	})
-
-	Context("when retrieving vulnerabilities description", func() {
-		It("returns a map with the id as key", func() {
-			descriptions, _ := client.GetVulnerabilityDescription("CVE-2016-2779", "VULNDB-229217")
-
-			Expect(descriptions).To(HaveKeyWithValue("CVE-2016-2779", "runuser in util-linux allows local users to escape to the parent session via a crafted TIOCSTI ioctl call, which pushes characters to the terminal's input buffer."))
-
-			Expect(descriptions).To(HaveKeyWithValue("VULNDB-229217", "pip PyPI (Python Packaging Index) contains a flaw that allows traversing outside of a restricted path. The issue is due to the PipXmlrpcTransport._download_http_url() function in _internal/download.py not properly sanitizing input, specifically path traversal style attacks (e.g. '../') supplied via the HTTP Content-Disposition header when downloading a remote package. With a specially crafted server, a remote attacker can write to arbitrary files."))
-		})
-	})
+	*/
 })

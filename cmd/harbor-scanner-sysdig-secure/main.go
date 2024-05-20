@@ -58,6 +58,7 @@ func configure() error {
 	pflag.String("namespace_name", "", "Namespace where inline scanning jobs are spawned")
 	pflag.String("secret_name", "", "Secret which keeps the inline scanning secrets ")
 	pflag.String("cli_scanning_extra_params", "", "Extra parameters to provide to cli-scanner")
+	pflag.String("cli_scanner_image", "", "Extra parameters to provide to cli-scanner")
 
 	pflag.VisitAll(func(flag *pflag.Flag) { viper.BindPFlag(flag.Name, flag) })
 

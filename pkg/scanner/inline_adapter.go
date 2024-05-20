@@ -156,7 +156,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 					Containers: []corev1.Container{
 						{
 							Name:    "scanner",
-							Image:   "miles3719/sysdig-cli-scanner:0.1", // Using my image but for production we would host it
+							Image:   os.Getenv("CLI_SCANNER_IMAGE"), // Using my image but for production we would host it
 							Command: []string{"/bin/bash"},
 							Args: []string{
 								"-c",

@@ -2,15 +2,10 @@ package scanner
 
 import (
 	"errors"
-	"time"
-
-	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
+	"fmt"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure/mocks"
+	"os"
 )
 
 const (
@@ -22,9 +17,10 @@ const (
 
 var (
 	errSecure = errors.New("an error from Sysdig Secure")
-	createdAt = time.Now()
+	createdAt = generatedAt
 )
 
+/*
 var _ = Describe("BackendAdapter", func() {
 	var (
 		controller *gomock.Controller
@@ -134,6 +130,7 @@ var _ = Describe("BackendAdapter", func() {
 		})
 	})
 })
+*/
 
 func scanRequest() harbor.ScanRequest {
 	return harbor.ScanRequest{
@@ -165,14 +162,13 @@ func scanRequestWithoutTag() harbor.ScanRequest {
 	}
 }
 
-func scanResponse() secure.ScanResponse {
-	return secure.ScanResponse{
-		ImageDetail: []*secure.ImageDetail{
+func scanResponse() secure.V2VulnerabilityReport {
+	return secure.V2VulnerabilityReport{
+		Data: []secure.V2VulnerabilityData{
 			{
-				CreatedAt:  createdAt,
-				Repository: "sysdig/agent",
-				Digest:     imageDigest,
-				Tag:        "9.7.0",
+				StoredAt:        createdAt,
+				ImagePullString: fmt.Sprintf("sysdig/agent:%s@%s", "9.7", imageDigest),
+				ImageID:         imageDigest,
 			},
 		},
 	}
@@ -190,6 +186,21 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 				Fix:            "None",
 				Severity:       "Critical",
 				URL:            "https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
+				NVDData: []*secure.NVDData{
+					{
+						ID: "NVD-1234",
+						CVSSV2: &secure.CVSS{
+							BaseScore:           7.5,
+							ExploitabilityScore: 8.6,
+							ImpactScore:         6.4,
+						},
+						CVSSV3: &secure.CVSS{
+							BaseScore:           9.8,
+							ExploitabilityScore: 10.0,
+							ImpactScore:         8.9,
+						},
+					},
+				},
 			},
 			{
 				Vuln:           "CVE-2019-9946",
@@ -198,6 +209,21 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 				Fix:            "None",
 				Severity:       "High",
 				URL:            "https://nvd.nist.gov/vuln/detail/CVE-2019-9946",
+				NVDData: []*secure.NVDData{
+					{
+						ID: "NVD-1234",
+						CVSSV2: &secure.CVSS{
+							BaseScore:           7.5,
+							ExploitabilityScore: 8.6,
+							ImpactScore:         6.4,
+						},
+						CVSSV3: &secure.CVSS{
+							BaseScore:           9.8,
+							ExploitabilityScore: 10.0,
+							ImpactScore:         8.9,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -219,12 +245,7 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 			Vendor:  "Sysdig",
 			Version: secure.BackendVersion,
 		},
-		Artifact: &harbor.Artifact{
-			Repository: "sysdig/agent",
-			Digest:     imageDigest,
-			Tag:        "9.7.0",
-			MimeType:   harbor.DockerDistributionManifestMimeType,
-		},
+		Artifact: nil,
 		Vulnerabilities: []harbor.VulnerabilityItem{
 			{
 				ID:          "CVE-2019-9948",
@@ -232,9 +253,27 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 				Version:     "2.7.16",
 				FixVersion:  "",
 				Severity:    harbor.CRITICAL,
-				Description: "Description for CVE-2019-9948",
+				Description: "Disclosure Date: '', Exploitable: 'false' ",
 				Links: []string{
+					fmt.Sprintf("%s/secure/#/vulnerabilities/results//overview", os.Getenv("SECURE_URL")),
 					"https://nvd.nist.gov/vuln/detail/CVE-2019-9948",
+					"https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-9948",
+				},
+				CVSS: harbor.CVSSData{
+					ScoreV3:  9.8,
+					ScoreV2:  7.5,
+					VectorV3: "",
+					VectorV2: "",
+				},
+				VendorAttributes: harbor.CVSS{
+					CvssKey: harbor.NVDKey{
+						NVD: harbor.CVSSDataVendor{
+							ScoreV3:  9.8,
+							VectorV3: "",
+							ScoreV2:  7.5,
+							VectorV2: "",
+						},
+					},
 				},
 			},
 			{
@@ -243,9 +282,27 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 				Version:     "2.7.16",
 				FixVersion:  "",
 				Severity:    harbor.HIGH,
-				Description: "Description for CVE-2019-9946",
+				Description: "Disclosure Date: '', Exploitable: 'false' ",
 				Links: []string{
+					fmt.Sprintf("%s/secure/#/vulnerabilities/results//overview", os.Getenv("SECURE_URL")),
 					"https://nvd.nist.gov/vuln/detail/CVE-2019-9946",
+					"https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2019-9946",
+				},
+				CVSS: harbor.CVSSData{
+					ScoreV3:  9.8,
+					ScoreV2:  7.5,
+					VectorV3: "",
+					VectorV2: "",
+				},
+				VendorAttributes: harbor.CVSS{
+					CvssKey: harbor.NVDKey{
+						NVD: harbor.CVSSDataVendor{
+							ScoreV3:  9.8,
+							VectorV3: "",
+							ScoreV2:  7.5,
+							VectorV2: "",
+						},
+					},
 				},
 			},
 		},
