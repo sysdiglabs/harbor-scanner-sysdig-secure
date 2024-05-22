@@ -1,4 +1,4 @@
-FROM golang:1.16 as builder
+FROM golang:1.22.1 as builder
 WORKDIR /harbor-scanner-sysdig-secure
 COPY go.mod go.sum ./
 COPY . .
