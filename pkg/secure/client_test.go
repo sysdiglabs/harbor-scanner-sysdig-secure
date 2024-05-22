@@ -44,7 +44,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 	Context("when retrieving vulnerabilities for an image", func() {
 		It("gets the report for a SHA", func() {
-			response, _ := client.GetVulnerabilities("sha256:1e331e745ddf2b295d93f04c1477489fce34bf9ac26f4ab964f14e9dbe4e2dc4")
+			response, _ := client.GetVulnerabilities("sha256:a97a153152fcd6410bdf4fb64f5622ecf97a753f07dcc89dab14509d059736cf")
 
 			Expect(response).NotTo(Equal(secure.VulnerabilityReport{}))
 			Expect(len(response.Vulnerabilities)).To(BeNumerically(">", 0))
@@ -109,7 +109,7 @@ var _ = Describe("Sysdig Secure Client", func() {
 
 	Context("when getting an image information", func() {
 		It("returns the image information", func() {
-			image, _ := client.GetImage("sha256:1e331e745ddf2b295d93f04c1477489fce34bf9ac26f4ab964f14e9dbe4e2dc4")
+			image, _ := client.GetImage("sha256:a97a153152fcd6410bdf4fb64f5622ecf97a753f07dcc89dab14509d059736cf")
 
 			Expect(image).NotTo(Equal(secure.ScanResponse{}))
 		})
