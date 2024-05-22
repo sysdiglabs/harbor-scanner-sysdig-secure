@@ -115,7 +115,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	scanResponse, _ := b.secureClient.GetImage(shaDigest)
 
 	for _, imageDetail := range scanResponse.Data {
-		parts := strings.Split(imageDetail.ImagePullString, "@")
+		parts := strings.Split(imageDetail.MainAssetName, "@")
 		repoWithTag := parts[0]
 		hash := parts[1]
 		firstSlash := strings.Index(repoWithTag, "/")
@@ -123,7 +123,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 		repo := repoWithTag[firstSlash+1 : lastColon]
 		tag := repoWithTag[lastColon+1:]
 		if repo == repository {
-			result.GeneratedAt = imageDetail.StoredAt
+			result.GeneratedAt = imageDetail.CreatedAt
 			result.Artifact = &harbor.Artifact{
 				Repository: repo,
 				Digest:     hash,
@@ -144,7 +144,7 @@ func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secur
 		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Processing %d/%d", idx, len(vulnerabilities)-1)
 		vulnerabilities[idx].URL = fmt.Sprintf("%s/secure/#/vulnerabilities/results/%s/overview", os.Getenv("SECURE_URL"), vulnerability.ResultId)
 		result[vulnerability.Vuln] = fmt.Sprintf("Disclosure Date: '%s', Exploitable: '%v' ", vulnerability.DisclosureDate, vulnerability.Exploitable)
-
+		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: %s, URL: '%s'", result[vulnerability.Vuln], vulnerabilities[idx].URL)
 	}
 	b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Finished getting descriptions")
 	return result, nil

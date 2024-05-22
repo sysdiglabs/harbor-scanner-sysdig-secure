@@ -21,52 +21,27 @@ var (
 )
 
 /*
-var _ = Describe("BackendAdapter", func() {
-	var (
-		controller *gomock.Controller
-		client     *mocks.MockClient
-		adapter    Adapter
-	)
+	var _ = Describe("BackendAdapter", func() {
+		var (
+			controller *gomock.Controller
+			client     *mocks.MockClient
+			adapter    Adapter
+		)
 
-	BeforeEach(func() {
-		controller = gomock.NewController(GinkgoT())
-		client = mocks.NewMockClient(controller)
-		adapter = NewBackendAdapter(client)
-	})
-
-	AfterEach(func() {
-		controller.Finish()
-	})
-
-	Context("when scanning an image", func() {
-		It("sends the repository and tag to Sysdig Secure", func() {
-			client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
-
-			secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-			client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
-
-			result, _ := adapter.Scan(scanRequest())
-
-			Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
+		BeforeEach(func() {
+			controller = gomock.NewController(GinkgoT())
+			client = mocks.NewMockClient(controller)
+			adapter = NewBackendAdapter(client)
 		})
 
-		Context("and it does not send tag", func() {
-			It("sends the repository only to Sysdig Secure", func() {
+		AfterEach(func() {
+			controller.Finish()
+		})
+
+		Context("when scanning an image", func() {
+			It("sends the repository and tag to Sysdig Secure", func() {
 				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
 
-				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent@an image digest", false).Return(secureResponse, nil)
-
-				result, _ := adapter.Scan(scanRequestWithoutTag())
-
-				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
-			})
-		})
-
-		Context("when registry already exists in Secure", func() {
-			It("updates registry with new credentials and queues the image", func() {
-				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(secure.ErrRegistryAlreadyExists)
-				client.EXPECT().UpdateRegistry("harbor.sysdig-demo.zone", user, password)
 				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
 				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
 
@@ -74,64 +49,88 @@ var _ = Describe("BackendAdapter", func() {
 
 				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 			})
-		})
 
-		Context("when Secure fails to add the image to the scanning queue", func() {
-			It("returns the error", func() {
-				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
-				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
+			Context("and it does not send tag", func() {
+				It("sends the repository only to Sysdig Secure", func() {
+					client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
 
-				_, err := adapter.Scan(scanRequest())
+					secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
+					client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent@an image digest", false).Return(secureResponse, nil)
 
-				Expect(err).To(MatchError(errSecure))
-			})
-		})
-	})
+					result, _ := adapter.Scan(scanRequestWithoutTag())
 
-	Context("when getting the vulnerability report for an image", func() {
-		It("queries Secure for the vulnerability list", func() {
-			client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
-			client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
-			client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
-
-			result, _ := adapter.GetVulnerabilityReport(scanID)
-
-			Expect(result).To(Equal(vulnerabilityReport()))
-		})
-
-		Context("when Secure returns an error", func() {
-			Context("when Secure cannot find the image scanned", func() {
-				It("returns a ScanRequestID Not Found Error", func() {
-					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
-
-					_, err := adapter.GetVulnerabilityReport(scanID)
-
-					Expect(err).To(MatchError(ErrScanRequestIDNotFound))
+					Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 				})
 			})
 
-			Context("when Secure is still scanning the image", func() {
-				It("returns a VulnerabilityReport is not Ready Error", func() {
-					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrVulnerabilityReportNotReady)
+			Context("when registry already exists in Secure", func() {
+				It("updates registry with new credentials and queues the image", func() {
+					client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(secure.ErrRegistryAlreadyExists)
+					client.EXPECT().UpdateRegistry("harbor.sysdig-demo.zone", user, password)
+					secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
+					client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
 
-					_, err := adapter.GetVulnerabilityReport(scanID)
+					result, _ := adapter.Scan(scanRequest())
 
-					Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
+					Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
 				})
 			})
 
-			It("returns the error", func() {
-				client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
+			Context("when Secure fails to add the image to the scanning queue", func() {
+				It("returns the error", func() {
+					client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
+					client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
 
-				_, err := adapter.GetVulnerabilityReport(scanID)
+					_, err := adapter.Scan(scanRequest())
 
-				Expect(err).To(MatchError(errSecure))
+					Expect(err).To(MatchError(errSecure))
+				})
+			})
+		})
+
+		Context("when getting the vulnerability report for an image", func() {
+			It("queries Secure for the vulnerability list", func() {
+				client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
+				client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
+				client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
+
+				result, _ := adapter.GetVulnerabilityReport(scanID)
+
+				Expect(result).To(Equal(vulnerabilityReport()))
+			})
+
+			Context("when Secure returns an error", func() {
+				Context("when Secure cannot find the image scanned", func() {
+					It("returns a ScanRequestID Not Found Error", func() {
+						client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
+
+						_, err := adapter.GetVulnerabilityReport(scanID)
+
+						Expect(err).To(MatchError(ErrScanRequestIDNotFound))
+					})
+				})
+
+				Context("when Secure is still scanning the image", func() {
+					It("returns a VulnerabilityReport is not Ready Error", func() {
+						client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrVulnerabilityReportNotReady)
+
+						_, err := adapter.GetVulnerabilityReport(scanID)
+
+						Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
+					})
+				})
+
+				It("returns the error", func() {
+					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
+
+					_, err := adapter.GetVulnerabilityReport(scanID)
+
+					Expect(err).To(MatchError(errSecure))
+				})
 			})
 		})
 	})
-})
 */
-
 func scanRequest() harbor.ScanRequest {
 	return harbor.ScanRequest{
 		Registry: &harbor.Registry{
@@ -166,9 +165,8 @@ func scanResponse() secure.V2VulnerabilityReport {
 	return secure.V2VulnerabilityReport{
 		Data: []secure.V2VulnerabilityData{
 			{
-				StoredAt:        createdAt,
-				ImagePullString: fmt.Sprintf("sysdig/agent:%s@%s", "9.7", imageDigest),
-				ImageID:         imageDigest,
+				CreatedAt:     createdAt,
+				MainAssetName: fmt.Sprintf("sysdig/agent:%s@%s", "9.7", imageDigest),
 			},
 		},
 	}
