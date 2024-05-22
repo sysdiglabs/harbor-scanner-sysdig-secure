@@ -2,6 +2,7 @@ package scanner
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"time"
 
@@ -94,7 +95,7 @@ func (a *AsyncAdapter) awaitReportAvailability(scanID harbor.ScanRequestID) {
 		case <-ticker.C:
 			a.log.Infof("Checking status of report '%s'", scanID)
 			report, err := a.wrapped.GetVulnerabilityReport(scanID)
-			if err != ErrVulnerabilityReportNotReady {
+			if !errors.Is(err, ErrVulnerabilityReportNotReady) {
 				ticker.Stop()
 				a.repliesChan <- &asyncReportReply{scanID: scanID, report: report, err: err}
 				return

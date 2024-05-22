@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -46,7 +47,7 @@ func NewAPIHandler(adapter scanner.Adapter, logger Logger) http.Handler {
 	return handlers.LoggingHandler(logger.Writer(), router)
 }
 
-func health(res http.ResponseWriter, req *http.Request) {
+func health(res http.ResponseWriter, _ *http.Request) {
 	res.WriteHeader(http.StatusOK)
 }
 
@@ -57,12 +58,16 @@ func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusInternalServerError)
 
-		json.NewEncoder(res).Encode(errorResponseFromError(err))
+		if err := json.NewEncoder(res).Encode(errorResponseFromError(err)); err != nil {
+			return
+		}
 		return
 	}
 
 	res.Header().Set("Content-Type", harbor.ScannerAdapterMetadataMimeType)
-	json.NewEncoder(res).Encode(metadata)
+	if err := json.NewEncoder(res).Encode(metadata); err != nil {
+		return
+	}
 }
 
 func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
@@ -72,9 +77,9 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 		h.logRequestError(req, err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(res).Encode(
-			errorResponseFromError(
-				fmt.Errorf("Error parsing scan request: %s", err.Error())))
+		if err := json.NewEncoder(res).Encode(errorResponseFromError(fmt.Errorf("error parsing scan request: %s", err.Error()))); err != nil {
+			return
+		}
 		return
 	}
 
@@ -83,13 +88,17 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 		h.logRequestError(req, err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(res).Encode(errorResponseFromError(err))
+		if err := json.NewEncoder(res).Encode(errorResponseFromError(err)); err != nil {
+			return
+		}
 		return
 	}
 
 	res.Header().Set("Content-Type", harbor.ScanResponseMimeType)
 	res.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(res).Encode(scanResponse)
+	if err := json.NewEncoder(res).Encode(scanResponse); err != nil {
+		return
+	}
 }
 
 func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
@@ -98,11 +107,11 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(harbor.ScanRequestID(vars["scan_request_id"]))
 	if err != nil {
 		h.logRequestError(req, err)
-		switch err {
-		case scanner.ErrScanRequestIDNotFound:
+		switch {
+		case errors.Is(err, scanner.ErrScanRequestIDNotFound):
 			res.WriteHeader(http.StatusNotFound)
 			_ = json.NewEncoder(res).Encode(errorResponseFromError(err))
-		case scanner.ErrVulnerabilityReportNotReady:
+		case errors.Is(err, scanner.ErrVulnerabilityReportNotReady):
 			res.Header().Set("Refresh-After", fmt.Sprintf("%d", DefaultRefreshTimeInSeconds))
 			res.Header().Set("Location", req.URL.String())
 			res.WriteHeader(http.StatusFound)
@@ -115,6 +124,14 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	}
 
 	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
+	jsonData, err := json.Marshal(vulnerabilityReport)
+	if err != nil {
+		fmt.Println("Error marshalling to JSON:", err)
+		return
+	}
+
+	fmt.Printf("%s\n", jsonData)
+
 	_ = json.NewEncoder(res).Encode(vulnerabilityReport)
 }
 

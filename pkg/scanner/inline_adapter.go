@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -19,7 +18,7 @@ import (
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 )
 
-const jobDefaultTTL = 3600
+const jobDefaultTTL = 86400
 
 var ErrInlineScanError = errors.New("error executing the inline scanner")
 
@@ -54,7 +53,7 @@ type Logger interface {
 
 func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL, namespace, secret, extraParams string, verifySSL bool, logger Logger) Adapter {
 	return &inlineAdapter{
-		BaseAdapter: BaseAdapter{secureClient: secureClient},
+		BaseAdapter: BaseAdapter{secureClient: secureClient, logger: logger},
 		k8sClient:   k8sClient,
 		secureURL:   secureURL,
 		namespace:   namespace,
@@ -98,11 +97,10 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 
 func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.Job {
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
-	userPassword := fmt.Sprintf("%s:%s", user, password)
 
 	var envVars = []corev1.EnvVar{
 		{
-			Name: "SYSDIG_API_TOKEN",
+			Name: "SECURE_API_TOKEN", //Renamed for CLI scanner
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -121,18 +119,28 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	envVars = appendLocalEnvVar(envVars, "no_proxy")
 	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
 
-	cmdString := fmt.Sprintf("/sysdig-inline-scan.sh --sysdig-url %s -d %s --registry-skip-tls --registry-auth-basic '%s' --format=JSON ", i.secureURL, req.Artifact.Digest, userPassword)
-
-	// Add --sysdig-skip-tls only if insecure
+	//Pass in registry credential variables for CLI scanner to use the robot account that is created for us.
+	envVars = append(envVars, corev1.EnvVar{
+		Name:      "REGISTRY_USER",
+		Value:     user,
+		ValueFrom: nil,
+	}, corev1.EnvVar{
+		Name:      "REGISTRY_PASSWORD",
+		Value:     password,
+		ValueFrom: nil,
+	})
+	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
+	cmdString := fmt.Sprintf("/root/sysdig-cli-scanner -a %s --skiptlsverify --output-json=output.json ", i.secureURL)
+	// Add skiptlsverify if insecure
 	if !i.verifySSL {
-		cmdString += "--sysdig-skip-tls "
+		cmdString += "--skiptlsverify "
 	}
 
 	if i.extraParams != "" {
 		cmdString += fmt.Sprintf("%s ", i.extraParams)
 	}
 
-	cmdString += getImageFrom(req)
+	cmdString += fmt.Sprintf("pull://%s@%s", getImageFrom(req), req.Artifact.Digest)
 	cmdString += "; RC=$?; if [[ $RC -eq 1 ]]; then (exit 0); else (exit $RC); fi"
 	var backoffLimit int32 = 0
 	return &batchv1.Job{
@@ -148,8 +156,8 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 					Containers: []corev1.Container{
 						{
 							Name:    "scanner",
-							Image:   "quay.io/sysdig/secure-inline-scan:2",
-							Command: []string{"/bin/sh"},
+							Image:   os.Getenv("CLI_SCANNER_IMAGE"), // Using my image but for production we would host it
+							Command: []string{"/bin/bash"},
 							Args: []string{
 								"-c",
 								cmdString,
@@ -176,8 +184,7 @@ func appendLocalEnvVar(envVars []corev1.EnvVar, key string) []corev1.EnvVar {
 
 func jobName(repository string, shaDigest string) string {
 	return fmt.Sprintf(
-		"inline-scan-%x",
-		md5.Sum([]byte(fmt.Sprintf("%s|%s", repository, shaDigest))))
+		"cli-scanner-%x", md5.Sum([]byte(fmt.Sprintf("%s|%s", repository, shaDigest))))
 }
 
 func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequestID) (harbor.VulnerabilityReport, error) {
@@ -200,12 +207,12 @@ func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequest
 	i.logger.Infof("Scan for %s/%s finished, collecting results from job %s", repository, shaDigest, name)
 	podResults, err := i.collectPodResults(job)
 	if err != nil {
-		i.logger.Errorf("Error collecting inline scanner results for %s/%s:\n%s", repository, shaDigest, err)
+		i.logger.Errorf("Error collecting inline scanner results for %s/%s:%s", repository, shaDigest, err)
 		return harbor.VulnerabilityReport{}, ErrInlineScanError
 	}
 
 	if podResults.ExitCode != 0 && podResults.ExitCode != 1 {
-		i.logger.Errorf("Error executing inline scanner for %s/%s:\n%s", repository, shaDigest, string(podResults.LogBytes))
+		i.logger.Errorf("Error executing inline scanner for %s/%s:%s", repository, shaDigest, string(podResults.LogBytes))
 		return harbor.VulnerabilityReport{}, ErrInlineScanError
 	}
 
@@ -256,9 +263,13 @@ func (i *inlineAdapter) collectPodResults(job *batchv1.Job) (*podResults, error)
 		return nil, err
 	}
 
-	defer podLogs.Close()
+	defer func(podLogs io.ReadCloser) {
+		if err := podLogs.Close(); err != nil {
+			return
+		}
+	}(podLogs)
 
-	logBytes, err := ioutil.ReadAll(podLogs)
+	logBytes, err := io.ReadAll(podLogs)
 	if err != nil {
 		return nil, err
 	}

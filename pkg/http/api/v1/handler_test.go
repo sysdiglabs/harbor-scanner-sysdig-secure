@@ -158,7 +158,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				var result harbor.ErrorResponse
 				json.NewDecoder(response.Body).Decode(&result)
 
-				Expect(result).To(Equal(harborErrorResponseFor("Error parsing scan request: invalid character 'i' looking for beginning of value")))
+				Expect(result).To(Equal(harborErrorResponseFor("error parsing scan request: invalid character 'i' looking for beginning of value")))
 			})
 		})
 
@@ -210,7 +210,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 			response := doGetRequest(handler, reqPath)
 
-			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0"))
+			Expect(response.Header.Get("Content-Type")).To(Equal("application/vnd.security.vulnerability.report; version=1.1"))
 		})
 
 		It("returns a valid scanner.vuln.report.harbor as JSON", func() {
@@ -320,7 +320,7 @@ func sysdigSecureScannerAdapterMetadata() harbor.ScannerAdapterMetadata {
 					"application/vnd.docker.distribution.manifest.v2+json",
 				},
 				ProducesMimeTypes: []string{
-					"application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.0",
+					"application/vnd.scanner.adapter.vuln.report.harbor+json; version=1.1",
 				},
 			},
 		},

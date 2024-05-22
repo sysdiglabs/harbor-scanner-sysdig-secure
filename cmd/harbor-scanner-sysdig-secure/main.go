@@ -53,11 +53,12 @@ func configure() error {
 	pflag.String("secure_api_token", "", "Sysdig Secure API Token")
 	pflag.String("secure_url", "https://secure.sysdig.com", "Sysdig Secure URL Endpoint")
 	pflag.Bool("verify_ssl", true, "Verify SSL when connecting to Sysdig Secure URL Endpoint")
-	pflag.Bool("inline_scanning", false, "Use Inline Scanning Adapter")
+	pflag.Bool("cli_scanning", false, "Use Sysdig-Cli-Scanner Scanning Adapter")
 	pflag.Bool("async_mode", false, "Use Async-Mode to perform reports retrieval")
 	pflag.String("namespace_name", "", "Namespace where inline scanning jobs are spawned")
 	pflag.String("secret_name", "", "Secret which keeps the inline scanning secrets ")
-	pflag.String("inline_scanning_extra_params", "", "Extra parameters to provide to inline-scanner")
+	pflag.String("cli_scanning_extra_params", "", "Extra parameters to provide to cli-scanner")
+	pflag.String("cli_scanner_image", "", "Extra parameters to provide to cli-scanner")
 
 	pflag.VisitAll(func(flag *pflag.Flag) { viper.BindPFlag(flag.Name, flag) })
 
@@ -67,8 +68,8 @@ func configure() error {
 		return errors.New("secure_api_token is required")
 	}
 
-	if viper.GetBool("inline_scanning") && (viper.Get("namespace_name") == "" || viper.Get("secret_name") == "") {
-		return errors.New("namespace_name and secret_name are required when running inline scanning")
+	if viper.GetBool("cli_scanning") && (viper.Get("namespace_name") == "" || viper.Get("secret_name") == "") {
+		return errors.New("namespace_name and secret_name are required when running sysdig-cli-scanner")
 	}
 
 	return nil
@@ -77,8 +78,8 @@ func configure() error {
 func getAdapter() scanner.Adapter {
 	client := secure.NewClient(viper.GetString("secure_api_token"), viper.GetString("secure_url"), viper.GetBool("verify_ssl"))
 
-	if viper.GetBool("inline_scanning") {
-		log.Info("Using inline-scanning adapter")
+	if viper.GetBool("cli_scanning") {
+		log.Info("Using cli-scanner adapter")
 		config, err := rest.InClusterConfig()
 		if err != nil {
 			log.Fatal(err)
@@ -95,7 +96,7 @@ func getAdapter() scanner.Adapter {
 			viper.GetString("secure_url"),
 			viper.GetString("namespace_name"),
 			viper.GetString("secret_name"),
-			viper.GetString("inline_scanning_extra_params"),
+			viper.GetString("cli_scanning_extra_params"),
 			viper.GetBool("verify_ssl"),
 			log.StandardLogger())
 	}

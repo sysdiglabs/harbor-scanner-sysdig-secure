@@ -93,10 +93,10 @@ func (mr *MockClientMockRecorder) GetFeeds() *gomock.Call {
 }
 
 // GetImage mocks base method.
-func (m *MockClient) GetImage(shaDigest string) (secure.ScanResponse, error) {
+func (m *MockClient) GetImage(shaDigest string) (secure.V2VulnerabilityReport, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetImage", shaDigest)
-	ret0, _ := ret[0].(secure.ScanResponse)
+	ret0, _ := ret[0].(secure.V2VulnerabilityReport)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -139,6 +139,21 @@ func (m *MockClient) GetVulnerabilityDescription(vulnerabilityIDs ...string) (ma
 func (mr *MockClientMockRecorder) GetVulnerabilityDescription(vulnerabilityIDs ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilityDescription", reflect.TypeOf((*MockClient)(nil).GetVulnerabilityDescription), vulnerabilityIDs...)
+}
+
+// GetVulnerabilityDescriptionV2 mocks base method.
+func (m *MockClient) GetVulnerabilityDescriptionV2(resultId, VulnId string) (*secure.UrlVuln, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVulnerabilityDescriptionV2", resultId, VulnId)
+	ret0, _ := ret[0].(*secure.UrlVuln)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVulnerabilityDescriptionV2 indicates an expected call of GetVulnerabilityDescriptionV2.
+func (mr *MockClientMockRecorder) GetVulnerabilityDescriptionV2(resultId, VulnId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVulnerabilityDescriptionV2", reflect.TypeOf((*MockClient)(nil).GetVulnerabilityDescriptionV2), resultId, VulnId)
 }
 
 // UpdateRegistry mocks base method.
