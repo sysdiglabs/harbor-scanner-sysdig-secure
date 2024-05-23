@@ -130,7 +130,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 		ValueFrom: nil,
 	})
 	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
-	cmdString := fmt.Sprintf("/root/sysdig-cli-scanner -a %s --skiptlsverify --output-json=output.json ", i.secureURL)
+	cmdString := fmt.Sprintf("/home/nonroot/sysdig-cli-scanner -a %s --skiptlsverify --output-json=output.json ", i.secureURL)
 	// Add skiptlsverify if insecure
 	if !i.verifySSL {
 		cmdString += "--skiptlsverify "
@@ -141,7 +141,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	}
 
 	cmdString += fmt.Sprintf("pull://%s@%s", getImageFrom(req), req.Artifact.Digest)
-	cmdString += "; RC=$?; if [[ $RC -eq 1 ]]; then (exit 0); else (exit $RC); fi"
+	cmdString += "; RC=$?; if [ $RC -eq 1 ]; then exit 0; else exit $RC; fi"
 	var backoffLimit int32 = 0
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -157,7 +157,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 						{
 							Name:    "scanner",
 							Image:   os.Getenv("CLI_SCANNER_IMAGE"), // Using my image but for production we would host it
-							Command: []string{"/bin/bash"},
+							Command: []string{"/busybox/sh"},
 							Args: []string{
 								"-c",
 								cmdString,
