@@ -25,19 +25,19 @@ var (
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Client interface {
-	AddImage(image string, force bool) (ScanResponse, error)
+	//AddImage(image string, force bool) (ScanResponse, error)
 	GetImage(shaDigest string) (V2VulnerabilityReport, error)
 
 	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
 
 	GetFeeds() ([]Feed, error)
 
-	AddRegistry(registry string, user string, password string) error
-	UpdateRegistry(registry string, user string, password string) error
-	DeleteRegistry(registry string) error
+	//AddRegistry(registry string, user string, password string) error
+	//UpdateRegistry(registry string, user string, password string) error
+	//DeleteRegistry(registry string) error
 
-	GetVulnerabilityDescription(vulnerabilityIDs ...string) (map[string]string, error)
-	GetVulnerabilityDescriptionV2(resultId string, VulnId string) (*UrlVuln, error)
+	//GetVulnerabilityDescription(vulnerabilityIDs ...string) (map[string]string, error)
+	//GetVulnerabilityDescriptionV2(resultId string, VulnId string) (*UrlVuln, error)
 }
 
 func NewClient(apiToken string, secureURL string, verifySSL bool) Client {
@@ -61,6 +61,7 @@ type client struct {
 	client    http.Client
 }
 
+/*
 func (s *client) AddImage(image string, force bool) (ScanResponse, error) {
 	var emptyResult ScanResponse
 
@@ -86,6 +87,7 @@ func (s *client) AddImage(image string, force bool) (ScanResponse, error) {
 	}
 	return result[0], nil
 }
+*/
 
 func (s *client) doRequest(method string, url string, payload []byte) (*http.Response, []byte, error) {
 	var emptyBody []byte
@@ -342,6 +344,7 @@ type registryRequest struct {
 	Verify   bool   `json:"registry_verify"`
 }
 
+/*
 func (s *client) AddRegistry(registry string, user string, password string) error {
 	request := registryRequest{
 		Registry: registry,
@@ -369,7 +372,9 @@ func (s *client) AddRegistry(registry string, user string, password string) erro
 
 	return nil
 }
+*/
 
+/*
 func (s *client) UpdateRegistry(registry string, user string, password string) error {
 	request := registryRequest{
 		Registry: registry,
@@ -392,7 +397,9 @@ func (s *client) UpdateRegistry(registry string, user string, password string) e
 	}
 	return nil
 }
+*/
 
+/*
 func (s *client) DeleteRegistry(registry string) error {
 	response, body, err := s.doRequest(
 		http.MethodDelete,
@@ -408,6 +415,7 @@ func (s *client) DeleteRegistry(registry string) error {
 
 	return nil
 }
+*/
 
 type V2PageDetails struct {
 	Returned int    `json:"returned"`
@@ -416,25 +424,25 @@ type V2PageDetails struct {
 }
 
 type V2VulnerabilityData struct {
-	ID                      string    `json:"id"`
-	StoredAt                time.Time `json:"storedAt"`
-	ImageID                 string    `json:"imageId"`
-	ImagePullString         string    `json:"imagePullString"`
-	VulnsBySev              []int     `json:"vulnsBySev"`
-	ExploitCount            int       `json:"exploitCount"`
-	PolicyEvaluationsResult string    `json:"policyEvaluationsResult"`
-	HasAcceptedRisk         bool      `json:"hasAcceptedRisk"`
+	//ID                      string    `json:"id"`
+	CreatedAt time.Time `json:"createdAt"`
+	//ImageID                 string    `json:"imageId"`
+	MainAssetName string `json:"mainAssetName"`
+	//VulnsBySev              []int  `json:"vulnsBySev"`
+	//ExploitCount            int    `json:"exploitCount"`
+	//PolicyEvaluationsResult string `json:"policyEvaluationsResult"`
+	//HasAcceptedRisk         bool   `json:"hasAcceptedRisk"`
 }
 
 type V2VulnerabilityReport struct {
-	Page V2PageDetails         `json:"page"`
+	//Page V2PageDetails         `json:"page"`
 	Data []V2VulnerabilityData `json:"data"`
 }
 
 func (s *client) GetImage(shaDigest string) (V2VulnerabilityReport, error) {
 	var emptyResult V2VulnerabilityReport
 
-	baseUrl := "/api/scanning/scanresults/v2/results"
+	baseUrl := "/secure/vulnerability/v1beta1/pipeline-results"
 	queryParams := url.Values{}
 	queryParams.Set("limit", "1")
 	queryParams.Set("filter", fmt.Sprintf("freeText in (\"%s\")", shaDigest))
@@ -512,6 +520,7 @@ type UrlVuln struct {
 	Description string
 }
 
+/*
 func (s *client) GetVulnerabilityDescriptionV2(resultId string, VulnId string) (*UrlVuln, error) {
 	result := UrlVuln{}
 
@@ -537,7 +546,8 @@ func (s *client) GetVulnerabilityDescriptionV2(resultId string, VulnId string) (
 
 	return &result, nil
 }
-
+*/
+/*
 func (s *client) GetVulnerabilityDescription(vulnerabilitiesIDs ...string) (map[string]string, error) {
 	result := make(map[string]string)
 
@@ -564,3 +574,4 @@ func (s *client) GetVulnerabilityDescription(vulnerabilitiesIDs ...string) (map[
 
 	return result, nil
 }
+*/

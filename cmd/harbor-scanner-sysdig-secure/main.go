@@ -101,6 +101,6 @@ func getAdapter() scanner.Adapter {
 			log.StandardLogger())
 	}
 
-	log.Info("Using backend-scanning adapter")
-	return scanner.NewBackendAdapter(client)
+	log.Fatal("Please specify the cli-scanner (--cli_scanning) command line parameter, backend scanning no longer supported")
+	return nil
 }
