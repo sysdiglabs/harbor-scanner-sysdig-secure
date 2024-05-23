@@ -219,10 +219,10 @@ func job() *batchv1.Job {
 						{
 							Name:    "scanner",
 							Image:   os.Getenv("CLI_SCANNER_IMAGE"),
-							Command: []string{"/bin/bash"},
+							Command: []string{"/busybox/sh"},
 							Args: []string{
 								"-c",
-								"/root/sysdig-cli-scanner -a https://secure.sysdig.com --skiptlsverify --output-json=output.json pull://harbor.sysdig-demo.zone/sysdig/agent:9.7.0@an image digest; RC=$?; if [[ $RC -eq 1 ]]; then (exit 0); else (exit $RC); fi",
+								"/home/nonroot/sysdig-cli-scanner -a https://secure.sysdig.com --skiptlsverify --output-json=output.json pull://harbor.sysdig-demo.zone/sysdig/agent:9.7.0@an image digest; RC=$?; if [ $RC -eq 1 ]; then exit 0; else exit $RC; fi",
 							},
 							Env: []corev1.EnvVar{
 								{
