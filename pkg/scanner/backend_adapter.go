@@ -3,10 +3,9 @@ package scanner
 import (
 	"encoding/base64"
 	"fmt"
-	"strings"
-
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
+	"strings"
 )
 
 var (
@@ -24,12 +23,15 @@ type backendAdapter struct {
 	BaseAdapter
 }
 
+/*
 func NewBackendAdapter(client secure.Client) Adapter {
 	return &backendAdapter{
 		BaseAdapter: BaseAdapter{secureClient: client},
 	}
 }
+*/
 
+/*
 func (b *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error) {
 	if err := b.setupCredentials(req); err != nil {
 		return harbor.ScanResponse{}, err
@@ -42,7 +44,9 @@ func (b *backendAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, erro
 
 	return b.CreateScanResponse(req.Artifact.Repository, response.ImageDigest), nil
 }
+*/
 
+/*
 func (b *backendAdapter) setupCredentials(req harbor.ScanRequest) error {
 	registry := getRegistryFrom(req)
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
@@ -58,6 +62,7 @@ func (b *backendAdapter) setupCredentials(req harbor.ScanRequest) error {
 	}
 	return nil
 }
+*/
 
 func getRegistryFrom(req harbor.ScanRequest) string {
 	return strings.ReplaceAll(strings.ReplaceAll(req.Registry.URL, "https://", ""), "http://", "")
