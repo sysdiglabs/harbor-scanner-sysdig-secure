@@ -153,7 +153,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	k8sDeployment, err := i.k8sClient.AppsV1().Deployments(deploymentName).Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			fmt.Printf("Deployment %s in namespace %s not found\n", deploymentName, namespace)
+			i.logger.Debugf("Deployment %s in namespace %s not found\n", deploymentName, namespace)
 		}
 	} else {
 		podSecurityContext = k8sDeployment.Spec.Template.Spec.SecurityContext
