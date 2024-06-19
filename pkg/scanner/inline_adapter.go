@@ -142,6 +142,30 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 
 	cmdString += fmt.Sprintf("pull://%s@%s", getImageFrom(req), req.Artifact.Digest)
 	cmdString += "; RC=$?; if [ $RC -eq 1 ]; then exit 0; else exit $RC; fi"
+
+	//Create security contexts for pod from main deployment
+	// Retrieve the security context from the first container
+	deploymentName := "harbor-scanner-sysdig-secure"
+	namespace := os.Getenv("NAMESPACE")
+	var containerSecurityContext *corev1.SecurityContext
+	var podSecurityContext *corev1.PodSecurityContext
+
+	k8sDeployment, err := i.k8sClient.AppsV1().Deployments(deploymentName).Get(context.TODO(), namespace, metav1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			fmt.Printf("Deployment %s in namespace %s not found\n", deploymentName, namespace)
+		}
+	} else {
+		podSecurityContext = k8sDeployment.Spec.Template.Spec.SecurityContext
+		podTemplate := k8sDeployment.Spec.Template
+		if len(podTemplate.Spec.Containers) > 0 && podTemplate.Spec.Containers[0].SecurityContext != nil {
+			containerSecurityContext = podTemplate.Spec.Containers[0].SecurityContext
+			i.logger.Debugf("Security context for container %s: %+v\n", podTemplate.Spec.Containers[0].Name, containerSecurityContext)
+		} else {
+			i.logger.Debug("No security context found for the first container")
+		}
+	}
+
 	var backoffLimit int32 = 0
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -152,7 +176,8 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 			BackoffLimit:            &backoffLimit,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{
-					RestartPolicy: corev1.RestartPolicyNever,
+					RestartPolicy:   corev1.RestartPolicyNever,
+					SecurityContext: podSecurityContext,
 					Containers: []corev1.Container{
 						{
 							Name:    "scanner",
@@ -162,7 +187,8 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 								"-c",
 								cmdString,
 							},
-							Env: envVars,
+							Env:             envVars,
+							SecurityContext: containerSecurityContext,
 						},
 					},
 				},
