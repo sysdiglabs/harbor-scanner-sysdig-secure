@@ -124,6 +124,7 @@ var _ = Describe("Async-Adapter", func() {
 			It("returns not-ready error", func() {
 				wrappedAdapter.EXPECT().GetVulnerabilityReport(scanRequestResponse.ID).Return(harbor.VulnerabilityReport{}, ErrVulnerabilityReportNotReady).AnyTimes()
 				_, _ = adapter.Scan(request)
+				time.Sleep(asyncAdapterRefreshRate * 6)
 				_, err := adapter.GetVulnerabilityReport(scanRequestResponse.ID)
 				Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
 			})
