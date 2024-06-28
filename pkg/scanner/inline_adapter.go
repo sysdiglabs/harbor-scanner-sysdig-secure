@@ -154,6 +154,8 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			i.logger.Debugf("Deployment %s in namespace %s not found\n", deploymentName, namespace)
+		} else {
+			i.logger.Debugf("Deployment %s in namespace %s Retrieval Error: %v", deploymentName, namespace, err)
 		}
 	} else {
 		podSecurityContext = k8sDeployment.Spec.Template.Spec.SecurityContext
@@ -165,6 +167,8 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 			i.logger.Debug("No security context found for the first container")
 		}
 	}
+	i.logger.Debugf("Building job with pod security context: %v", podSecurityContext)
+	i.logger.Debugf("Building job with container security context: %v", containerSecurityContext)
 
 	var backoffLimit int32 = 0
 	return &batchv1.Job{
