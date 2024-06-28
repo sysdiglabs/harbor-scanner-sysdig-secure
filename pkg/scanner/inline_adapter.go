@@ -3,10 +3,12 @@ package scanner
 import (
 	"context"
 	"crypto/md5"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -21,6 +23,16 @@ import (
 const jobDefaultTTL = 86400
 
 var ErrInlineScanError = errors.New("error executing the inline scanner")
+var (
+	severities = map[harbor.Severity]int{
+		harbor.UNKNOWN:    0,
+		harbor.NEGLIGIBLE: 1,
+		harbor.LOW:        2,
+		harbor.MEDIUM:     3,
+		harbor.HIGH:       4,
+		harbor.CRITICAL:   5,
+	}
+)
 
 type inlineAdapter struct {
 	BaseAdapter
@@ -78,7 +90,7 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 	name := jobName(req.Artifact.Repository, req.Artifact.Digest)
 	job := i.buildJob(name, req)
 
-	i.logger.Infof("Creating job %s for %s", name, getImageFrom(req))
+	i.logger.Infof("Creating job '%s' for %s", name, getImageFrom(req))
 	_, err := i.k8sClient.BatchV1().Jobs(i.namespace).Create(
 		context.Background(),
 		job,
@@ -96,6 +108,8 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 }
 
 func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.Job {
+	i.logger.Infof("Building job for request - Registry: %+v", req.Registry)
+	i.logger.Infof("Building job for request - Artifact: %+v", req.Artifact)
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
 
 	var envVars = []corev1.EnvVar{
@@ -140,22 +154,22 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 		cmdString += fmt.Sprintf("%s ", i.extraParams)
 	}
 
-	cmdString += fmt.Sprintf("pull://%s@%s", getImageFrom(req), req.Artifact.Digest)
+	cmdString += fmt.Sprintf("pull://%s", getImageFrom(req))
 	cmdString += "; RC=$?; if [ $RC -eq 1 ]; then exit 0; else exit $RC; fi"
 
 	//Create security contexts for pod from main deployment
 	// Retrieve the security context from the first container
 	deploymentName := "harbor-scanner-sysdig-secure"
-	namespace := os.Getenv("NAMESPACE_NAME") //Comes from the helm chart .Release.Namespace value
+	cliScannerNamespace := os.Getenv("NAMESPACE_NAME") //Comes from the helm chart .Release.Namespace value
 	var containerSecurityContext *corev1.SecurityContext
 	var podSecurityContext *corev1.PodSecurityContext
 
-	k8sDeployment, err := i.k8sClient.AppsV1().Deployments(deploymentName).Get(context.TODO(), namespace, metav1.GetOptions{})
+	k8sDeployment, err := i.k8sClient.AppsV1().Deployments(cliScannerNamespace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			i.logger.Infof("Deployment %s in namespace %s not found\n", deploymentName, namespace)
+			i.logger.Infof("Deployment %s in namespace %s not found\n", deploymentName, cliScannerNamespace)
 		} else {
-			i.logger.Infof("Deployment %s in namespace %s Retrieval Error: %v", deploymentName, namespace, err)
+			i.logger.Infof("Deployment %s in namespace %s Retrieval Error: %v", deploymentName, cliScannerNamespace, err)
 		}
 	} else {
 		podSecurityContext = k8sDeployment.Spec.Template.Spec.SecurityContext
@@ -164,14 +178,19 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 			containerSecurityContext = podTemplate.Spec.Containers[0].SecurityContext
 			i.logger.Infof("Security context for container %s: %+v\n", podTemplate.Spec.Containers[0].Name, containerSecurityContext)
 		} else {
-			i.logger.Infof("No security context found for the first container")
+			i.logger.Infof("No security context found for the container")
 		}
 	}
-	i.logger.Infof("Building job with pod security context: %v", podSecurityContext)
-	i.logger.Infof("Building job with container security context: %v", containerSecurityContext)
+	i.logger.Infof("Building job with pod security context: %+v", podSecurityContext)
+	i.logger.Infof("Building job with container security context: %+v", containerSecurityContext)
+
+	var commandFinal = []string{"/busybox/sh"}
+	var commandArgs = []string{"-c", cmdString}
+	i.logger.Infof("Building job with Command Line: '%s'", commandFinal)
+	i.logger.Infof("Building job with Args: '%s'", commandArgs)
 
 	var backoffLimit int32 = 0
-	return &batchv1.Job{
+	var cliScannerJob = &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
 		},
@@ -184,13 +203,10 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 					SecurityContext: podSecurityContext,
 					Containers: []corev1.Container{
 						{
-							Name:    "scanner",
-							Image:   os.Getenv("CLI_SCANNER_IMAGE"), // Using my image but for production we would host it
-							Command: []string{"/busybox/sh"},
-							Args: []string{
-								"-c",
-								cmdString,
-							},
+							Name:            "scanner",
+							Image:           os.Getenv("CLI_SCANNER_IMAGE"), // Using my image but for production we would host it
+							Command:         commandFinal,
+							Args:            commandArgs,
 							Env:             envVars,
 							SecurityContext: containerSecurityContext,
 						},
@@ -199,6 +215,8 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 			},
 		},
 	}
+	i.logger.Infof("Complete Job Definitions: '%+v'", cliScannerJob)
+	return cliScannerJob
 }
 
 func appendLocalEnvVar(envVars []corev1.EnvVar, key string) []corev1.EnvVar {
@@ -312,4 +330,41 @@ func (i *inlineAdapter) collectPodResults(job *batchv1.Job) (*podResults, error)
 		LogBytes: logBytes,
 		ExitCode: int(pod.Status.ContainerStatuses[0].State.Terminated.ExitCode),
 	}, nil
+}
+
+func getRegistryFrom(req harbor.ScanRequest) string {
+	return strings.ReplaceAll(strings.ReplaceAll(req.Registry.URL, "https://", ""), "http://", "")
+}
+
+func getUserAndPasswordFrom(authorization string) (string, string) {
+	payload := strings.ReplaceAll(authorization, "Basic ", "")
+	plain, _ := base64.StdEncoding.DecodeString(payload)
+	splitted := strings.Split(string(plain), ":")
+
+	return splitted[0], splitted[1]
+}
+
+func getImageFrom(req harbor.ScanRequest) string {
+	result := fmt.Sprintf("%s/%s", getRegistryFrom(req), req.Artifact.Repository)
+	if req.Artifact.Tag == "" {
+		return result + fmt.Sprintf("@%s", req.Artifact.Digest)
+	}
+	return result + fmt.Sprintf(":%s", req.Artifact.Tag)
+}
+
+func (b *backendAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequestID) (harbor.VulnerabilityReport, error) {
+	repository, shaDigest := b.DecodeScanResponseID(scanResponseID)
+
+	vulnerabilityReport, err := b.secureClient.GetVulnerabilities(shaDigest)
+	if err != nil {
+		switch err {
+		case secure.ErrImageNotFound:
+			return harbor.VulnerabilityReport{}, ErrScanRequestIDNotFound
+		case secure.ErrVulnerabilityReportNotReady:
+			return harbor.VulnerabilityReport{}, ErrVulnerabilityReportNotReady
+		}
+		return harbor.VulnerabilityReport{}, err
+	}
+
+	return b.ToHarborVulnerabilityReport(repository, shaDigest, &vulnerabilityReport)
 }
