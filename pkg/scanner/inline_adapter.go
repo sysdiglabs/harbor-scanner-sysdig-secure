@@ -153,22 +153,22 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	k8sDeployment, err := i.k8sClient.AppsV1().Deployments(deploymentName).Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			i.logger.Debugf("Deployment %s in namespace %s not found\n", deploymentName, namespace)
+			i.logger.Infof("Deployment %s in namespace %s not found\n", deploymentName, namespace)
 		} else {
-			i.logger.Debugf("Deployment %s in namespace %s Retrieval Error: %v", deploymentName, namespace, err)
+			i.logger.Infof("Deployment %s in namespace %s Retrieval Error: %v", deploymentName, namespace, err)
 		}
 	} else {
 		podSecurityContext = k8sDeployment.Spec.Template.Spec.SecurityContext
 		podTemplate := k8sDeployment.Spec.Template
 		if len(podTemplate.Spec.Containers) > 0 && podTemplate.Spec.Containers[0].SecurityContext != nil {
 			containerSecurityContext = podTemplate.Spec.Containers[0].SecurityContext
-			i.logger.Debugf("Security context for container %s: %+v\n", podTemplate.Spec.Containers[0].Name, containerSecurityContext)
+			i.logger.Infof("Security context for container %s: %+v\n", podTemplate.Spec.Containers[0].Name, containerSecurityContext)
 		} else {
-			i.logger.Debug("No security context found for the first container")
+			i.logger.Infof("No security context found for the first container")
 		}
 	}
-	i.logger.Debugf("Building job with pod security context: %v", podSecurityContext)
-	i.logger.Debugf("Building job with container security context: %v", containerSecurityContext)
+	i.logger.Infof("Building job with pod security context: %v", podSecurityContext)
+	i.logger.Infof("Building job with container security context: %v", containerSecurityContext)
 
 	var backoffLimit int32 = 0
 	return &batchv1.Job{
