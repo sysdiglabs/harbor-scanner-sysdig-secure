@@ -130,7 +130,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 		ValueFrom: nil,
 	})
 	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
-	cmdString := fmt.Sprintf("/home/nonroot/sysdig-cli-scanner -a %s --skiptlsverify --output-json=output.json ", i.secureURL)
+	cmdString := fmt.Sprintf("/home/nonroot/sysdig-cli-scanner -a %s --skiptlsverify --console-log --loglevel debug ", i.secureURL)
 	// Add skiptlsverify if insecure
 	if !i.verifySSL {
 		cmdString += "--skiptlsverify "
