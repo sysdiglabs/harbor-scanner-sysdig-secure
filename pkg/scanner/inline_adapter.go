@@ -146,7 +146,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	//Create security contexts for pod from main deployment
 	// Retrieve the security context from the first container
 	deploymentName := "harbor-scanner-sysdig-secure"
-	namespace := os.Getenv("NAMESPACE")
+	namespace := os.Getenv("NAMESPACE_NAME") //Comes from the helm chart .Release.Namespace value
 	var containerSecurityContext *corev1.SecurityContext
 	var podSecurityContext *corev1.PodSecurityContext
 
