@@ -125,7 +125,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 		firstSlash := strings.Index(repoWithTag, "/")
 		lastColon := strings.LastIndex(repoWithTag, ":")
 
-		// Check if there is no colon after the last slash - i.e we are usig just a SHA hash
+		// Check if there is no colon after the last slash - i.e we are using just a SHA hash and need to fake a tag
 		lastSlash := strings.LastIndex(repoWithTag, "/")
 		if lastSlash != -1 && lastColon < lastSlash {
 			repoWithTag += ":"

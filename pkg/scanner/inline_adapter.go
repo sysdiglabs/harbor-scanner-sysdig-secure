@@ -349,5 +349,5 @@ func getImageFrom(req harbor.ScanRequest) string {
 	if req.Artifact.Tag == "" {
 		return result + fmt.Sprintf("@%s", req.Artifact.Digest)
 	}
-	return result + fmt.Sprintf(":%s", req.Artifact.Tag)
+	return result + fmt.Sprintf(":%s@%s", req.Artifact.Tag, req.Artifact.Digest)
 }
