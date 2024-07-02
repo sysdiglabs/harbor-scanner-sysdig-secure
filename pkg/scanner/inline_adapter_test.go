@@ -235,7 +235,7 @@ func job() *batchv1.Job {
 							Command: []string{"/busybox/sh"},
 							Args: []string{
 								"-c",
-								"/home/nonroot/sysdig-cli-scanner -a https://secure.sysdig.com --skiptlsverify --console-log --loglevel info pull://harbor.sysdig-demo.zone/sysdig/agent:9.7.0; RC=$?; if [ $RC -eq 1 ]; then exit 0; else exit $RC; fi",
+								"/home/nonroot/sysdig-cli-scanner -a https://secure.sysdig.com --skiptlsverify --console-log --loglevel info pull://harbor.sysdig-demo.zone/sysdig/agent:9.7.0@an image digest; RC=$?; if [ $RC -eq 1 ]; then exit 0; else exit $RC; fi",
 							},
 							Env: []corev1.EnvVar{
 								{
