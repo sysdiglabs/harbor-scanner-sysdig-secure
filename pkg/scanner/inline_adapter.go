@@ -188,7 +188,6 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	var commandArgs = []string{"-c", cmdString}
 	i.logger.Infof("Building job with Command Line: '%s'", commandFinal)
 	i.logger.Infof("Building job with Args: '%s'", commandArgs)
-
 	var backoffLimit int32 = 0
 	var cliScannerJob = &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
