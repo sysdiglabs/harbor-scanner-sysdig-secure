@@ -113,13 +113,25 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	}
 
 	scanResponse, _ := b.secureClient.GetImage(shaDigest)
+	if len(scanResponse.Data) > 0 {
+		b.logger.Debugf("ToHarborVulnerabilityReport:: mainAssetName = '%s'", scanResponse.Data[0].MainAssetName)
+	}
 
 	for _, imageDetail := range scanResponse.Data {
 		parts := strings.Split(imageDetail.MainAssetName, "@")
 		repoWithTag := parts[0]
 		hash := parts[1]
+
 		firstSlash := strings.Index(repoWithTag, "/")
 		lastColon := strings.LastIndex(repoWithTag, ":")
+
+		// Check if there is no colon after the last slash - i.e we are using just a SHA hash and need to fake a tag
+		lastSlash := strings.LastIndex(repoWithTag, "/")
+		if lastSlash != -1 && lastColon < lastSlash {
+			repoWithTag += ":"
+			lastColon = len(repoWithTag) - 1
+		}
+
 		repo := repoWithTag[firstSlash+1 : lastColon]
 		tag := repoWithTag[lastColon+1:]
 		if repo == repository {
