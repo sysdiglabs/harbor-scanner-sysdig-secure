@@ -25,19 +25,11 @@ var (
 
 //go:generate mockgen -source=$GOFILE -destination=./mocks/${GOFILE} -package=mocks
 type Client interface {
-	//AddImage(image string, force bool) (ScanResponse, error)
 	GetImage(shaDigest string) (V2VulnerabilityReport, error)
 
 	GetVulnerabilities(shaDigest string) (VulnerabilityReport, error)
 
 	GetFeeds() ([]Feed, error)
-
-	//AddRegistry(registry string, user string, password string) error
-	//UpdateRegistry(registry string, user string, password string) error
-	//DeleteRegistry(registry string) error
-
-	//GetVulnerabilityDescription(vulnerabilityIDs ...string) (map[string]string, error)
-	//GetVulnerabilityDescriptionV2(resultId string, VulnId string) (*UrlVuln, error)
 }
 
 func NewClient(apiToken string, secureURL string, verifySSL bool) Client {
@@ -61,39 +53,11 @@ type client struct {
 	client    http.Client
 }
 
-/*
-func (s *client) AddImage(image string, force bool) (ScanResponse, error) {
-	var emptyResult ScanResponse
-
-	params := map[string]string{
-		"tag": image,
-	}
-	payload, _ := json.Marshal(params)
-	response, body, err := s.doRequest(
-		http.MethodPost,
-		fmt.Sprintf("/api/scanning/v1/anchore/images?force=%t", force),
-		payload)
-	if err != nil {
-		return emptyResult, err
-	}
-
-	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		return emptyResult, err
-	}
-
-	var result []ScanResponse
-	if err = json.Unmarshal(body, &result); err != nil {
-		return emptyResult, err
-	}
-	return result[0], nil
-}
-*/
-
 func (s *client) doRequest(method string, url string, payload []byte) (*http.Response, []byte, error) {
 	var emptyBody []byte
 	baseDelay := 1 * time.Second
 
-	for attempt := 0; attempt < 7; attempt++ {
+	for attempt := range 7 {
 		request, err := http.NewRequest(method, fmt.Sprintf("%s%s", s.secureURL, url), strings.NewReader(string(payload)))
 		if err != nil {
 			return nil, emptyBody, err
@@ -252,7 +216,6 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	fullUrl := fmt.Sprintf("%s?%s", baseUrl, queryParams.Encode())
 
 	response, body, err := s.doRequest(http.MethodGet, fullUrl, nil)
-
 	if err != nil {
 		return result, err
 	}
@@ -278,6 +241,10 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	resultId := checkScanResultResponse.Data[0].ResultID
 	var V1BetaScanResult *V1BetaScanResult
 	V1BetaScanResult, err = s.retrieveFullVulnerabilityReport(resultId)
+	if err != nil {
+		return result, fmt.Errorf("unable to retrieve full vulnerability report: %w", err)
+	}
+
 	// Convert data into the v1 legacy format as best as possible
 	result = VulnerabilityReport{
 		ImageDigest:       checkScanResultResponse.Data[0].ImageID,
@@ -327,7 +294,7 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 				Vuln:           vulnRow.Name,
 				Exploitable:    vulnRow.Exploitable,
 				DisclosureDate: vulnRow.DisclosureDate,
-				//VulnId:         "",
+				// VulnId:         "",
 			}
 			result.Vulnerabilities = append(result.Vulnerabilities, &vuln)
 		}
@@ -336,87 +303,6 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 	return result, nil
 }
 
-type registryRequest struct {
-	Registry string `json:"registry"`
-	User     string `json:"registry_user"`
-	Password string `json:"registry_pass"`
-	Type     string `json:"registry_type"`
-	Verify   bool   `json:"registry_verify"`
-}
-
-/*
-func (s *client) AddRegistry(registry string, user string, password string) error {
-	request := registryRequest{
-		Registry: registry,
-		User:     user,
-		Password: password,
-		Type:     "docker_v2",
-		Verify:   false,
-	}
-	payload, _ := json.Marshal(request)
-	response, body, err := s.doRequest(
-		http.MethodPost,
-		// We don't validate credentials provided by Harbor, we assume they are valid
-		fmt.Sprintf("/api/scanning/v1/anchore/registries?validate=%t", false),
-		payload)
-	if err != nil {
-		return err
-	}
-
-	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		if err.Error() == "registry already exists in DB" {
-			return ErrRegistryAlreadyExists
-		}
-		return err
-	}
-
-	return nil
-}
-*/
-
-/*
-func (s *client) UpdateRegistry(registry string, user string, password string) error {
-	request := registryRequest{
-		Registry: registry,
-		User:     user,
-		Password: password,
-		Type:     "docker_v2",
-		Verify:   false,
-	}
-	payload, _ := json.Marshal(request)
-	response, body, err := s.doRequest(
-		http.MethodPut,
-		fmt.Sprintf("/api/scanning/v1/anchore/registries/registry/%s?validate=%t", registry, false),
-		payload)
-	if err != nil {
-		return err
-	}
-
-	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		return err
-	}
-	return nil
-}
-*/
-
-/*
-func (s *client) DeleteRegistry(registry string) error {
-	response, body, err := s.doRequest(
-		http.MethodDelete,
-		fmt.Sprintf("/api/scanning/v1/anchore/registries/%s", registry),
-		nil)
-	if err != nil {
-		return err
-	}
-
-	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		return err
-	}
-
-	return nil
-}
-*/
-
 type V2PageDetails struct {
 	Returned int    `json:"returned"`
 	Matched  int    `json:"matched"`
@@ -424,18 +310,11 @@ type V2PageDetails struct {
 }
 
 type V2VulnerabilityData struct {
-	//ID                      string    `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
-	//ImageID                 string    `json:"imageId"`
-	MainAssetName string `json:"mainAssetName"`
-	//VulnsBySev              []int  `json:"vulnsBySev"`
-	//ExploitCount            int    `json:"exploitCount"`
-	//PolicyEvaluationsResult string `json:"policyEvaluationsResult"`
-	//HasAcceptedRisk         bool   `json:"hasAcceptedRisk"`
+	CreatedAt     time.Time `json:"createdAt"`
+	MainAssetName string    `json:"mainAssetName"`
 }
 
 type V2VulnerabilityReport struct {
-	//Page V2PageDetails         `json:"page"`
 	Data []V2VulnerabilityData `json:"data"`
 }
 
@@ -489,15 +368,6 @@ func (s *client) GetFeeds() ([]Feed, error) {
 	return result, nil
 }
 
-type vulnerabilityDescription struct {
-	ID          string `json:"id"`
-	Description string `json:"description"`
-}
-
-type vulnerabilityResponse struct {
-	Vulnerabilities []vulnerabilityDescription `json:"vulnerabilities"`
-}
-
 type VulnerabilityDetail struct {
 	Vuln VulnDetail `json:"vuln"`
 }
@@ -519,59 +389,3 @@ type UrlVuln struct {
 	URL         string
 	Description string
 }
-
-/*
-func (s *client) GetVulnerabilityDescriptionV2(resultId string, VulnId string) (*UrlVuln, error) {
-	result := UrlVuln{}
-
-	response, body, err := s.doRequest(
-		http.MethodGet,
-		fmt.Sprintf("/api/scanning/scanresults/v2/results/%s/vulnPkgs/%s", resultId, VulnId),
-		nil)
-	if err != nil {
-		return &result, err
-	}
-
-	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		return &result, err
-	}
-
-	var res VulnerabilityDetail
-	if err = json.Unmarshal(body, &res); err != nil {
-		return &result, err
-	}
-
-	result.Description = res.Vuln.Description
-	result.URL = res.Vuln.CvssScore.Reporter.URL
-
-	return &result, nil
-}
-*/
-/*
-func (s *client) GetVulnerabilityDescription(vulnerabilitiesIDs ...string) (map[string]string, error) {
-	result := make(map[string]string)
-
-	response, body, err := s.doRequest(
-		http.MethodGet,
-		fmt.Sprintf("/api/scanning/v1/anchore/query/vulnerabilities?id=%s&namespace=nvdv2:cves,vulndb:vulnerabilities", strings.Join(vulnerabilitiesIDs, ",")),
-		nil)
-	if err != nil {
-		return result, err
-	}
-
-	if err = s.checkErrorInSecureAPI(response, body); err != nil {
-		return result, err
-	}
-
-	var res vulnerabilityResponse
-	if err = json.Unmarshal(body, &res); err != nil {
-		return result, err
-	}
-
-	for _, current := range res.Vulnerabilities {
-		result[current.ID] = current.Description
-	}
-
-	return result, nil
-}
-*/

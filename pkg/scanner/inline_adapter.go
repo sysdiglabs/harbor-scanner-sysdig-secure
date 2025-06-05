@@ -83,7 +83,6 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 		context.Background(),
 		job,
 		metav1.CreateOptions{})
-
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			return err
@@ -98,9 +97,9 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.Job {
 	user, password := getUserAndPasswordFrom(req.Registry.Authorization)
 
-	var envVars = []corev1.EnvVar{
+	envVars := []corev1.EnvVar{
 		{
-			Name: "SECURE_API_TOKEN", //Renamed for CLI scanner
+			Name: "SECURE_API_TOKEN", // Renamed for CLI scanner
 			ValueFrom: &corev1.EnvVarSource{
 				SecretKeyRef: &corev1.SecretKeySelector{
 					LocalObjectReference: corev1.LocalObjectReference{
@@ -119,7 +118,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	envVars = appendLocalEnvVar(envVars, "no_proxy")
 	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
 
-	//Pass in registry credential variables for CLI scanner to use the robot account that is created for us.
+	// Pass in registry credential variables for CLI scanner to use the robot account that is created for us.
 	envVars = append(envVars, corev1.EnvVar{
 		Name:      "REGISTRY_USER",
 		Value:     user,
@@ -143,7 +142,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	cmdString += fmt.Sprintf("pull://%s@%s", getImageFrom(req), req.Artifact.Digest)
 	cmdString += "; RC=$?; if [ $RC -eq 1 ]; then exit 0; else exit $RC; fi"
 
-	//Create security contexts for pod from main deployment
+	// Create security contexts for pod from main deployment
 	// Retrieve the security context from the first container
 	deploymentName := "harbor-scanner-sysdig-secure"
 	namespace := os.Getenv("NAMESPACE")
@@ -243,7 +242,6 @@ func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequest
 	}
 
 	vulnerabilityReport, err := i.secureClient.GetVulnerabilities(shaDigest)
-
 	if err != nil {
 		i.logger.Errorf("Error retrieving scan results from backend for %s/%s", repository, shaDigest)
 		return harbor.VulnerabilityReport{}, err
@@ -260,20 +258,17 @@ func (i *inlineAdapter) cleanupJob(name string) {
 		metav1.DeleteOptions{
 			PropagationPolicy: &propagationPolicy,
 		})
-
 	if err != nil {
 		i.logger.Errorf("Error deleting job %s: %s", name, err)
 	}
 }
 
 func (i *inlineAdapter) collectPodResults(job *batchv1.Job) (*podResults, error) {
-
 	pods, err := i.k8sClient.CoreV1().Pods(i.namespace).List(
 		context.Background(),
 		metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("controller-uid=%s", job.UID),
 		})
-
 	if err != nil {
 		return nil, err
 	}

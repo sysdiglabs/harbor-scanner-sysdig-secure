@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
@@ -20,9 +20,7 @@ import (
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/scanner/mocks"
 )
 
-var (
-	ErrUnexpected = errors.New("an unexpected error")
-)
+var ErrUnexpected = errors.New("an unexpected error")
 
 var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 	var (
@@ -73,7 +71,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 
 			response := doGetRequest(handler, "/api/v1/metadata")
 			var result harbor.ScannerAdapterMetadata
-			json.NewDecoder(response.Body).Decode(&result)
+			Expect(json.NewDecoder(response.Body).Decode(&result)).To(Succeed())
 
 			Expect(result).To(Equal(sysdigSecureScannerAdapterMetadata()))
 		})
@@ -99,7 +97,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				response := doGetRequest(handler, "/api/v1/metadata")
 
 				var result harbor.ErrorResponse
-				json.NewDecoder(response.Body).Decode(&result)
+				Expect(json.NewDecoder(response.Body).Decode(&result)).To(Succeed())
 
 				Expect(result).To(Equal(harborErrorResponseFor(ErrUnexpected.Error())))
 			})
@@ -132,7 +130,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 			response := doPostRequest(handler, "/api/v1/scan", string(payload))
 
 			var result harbor.ScanResponse
-			json.NewDecoder(response.Body).Decode(&result)
+			Expect(json.NewDecoder(response.Body).Decode(&result)).To(Succeed())
 			Expect(result).To(Equal(harborScanResponse()))
 		})
 
@@ -156,7 +154,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				response := doPostRequest(handler, "/api/v1/scan", scanRequest)
 
 				var result harbor.ErrorResponse
-				json.NewDecoder(response.Body).Decode(&result)
+				Expect(json.NewDecoder(response.Body).Decode(&result)).To(Succeed())
 
 				Expect(result).To(Equal(harborErrorResponseFor("error parsing scan request: invalid character 'i' looking for beginning of value")))
 			})
@@ -186,7 +184,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				response := doPostRequest(handler, "/api/v1/scan", string(payload))
 
 				var result harbor.ErrorResponse
-				json.NewDecoder(response.Body).Decode(&result)
+				Expect(json.NewDecoder(response.Body).Decode(&result)).To(Succeed())
 
 				Expect(result).To(Equal(harborErrorResponseFor(ErrUnexpected.Error())))
 			})
@@ -218,7 +216,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 			response := doGetRequest(handler, reqPath)
 
 			var result harbor.VulnerabilityReport
-			json.NewDecoder(response.Body).Decode(&result)
+			Expect(json.NewDecoder(response.Body).Decode(&result)).To(Succeed())
 
 			Expect(result).To(Equal(vulnerabilityReport()))
 		})
@@ -280,7 +278,7 @@ var _ = Describe("Harbor Scanner Sysdig Secure API Adapter", func() {
 				response := doGetRequest(handler, reqPath)
 
 				var result harbor.ErrorResponse
-				json.NewDecoder(response.Body).Decode(&result)
+				Expect(json.NewDecoder(response.Body).Decode(&result)).To(Succeed())
 
 				Expect(result).To(Equal(harborErrorResponseFor(ErrUnexpected.Error())))
 			})

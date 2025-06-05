@@ -59,7 +59,7 @@ func (a *AsyncAdapter) Scan(req harbor.ScanRequest) (harbor.ScanResponse, error)
 	resp, err := a.wrapped.Scan(req)
 	if err == nil && resp.ID != "" {
 		a.requestsChan <- resp.ID
-		go a.awaitReportAvailability(resp.ID) //we spawn a background task that checks report creation status with a given cadence
+		go a.awaitReportAvailability(resp.ID) // we spawn a background task that checks report creation status with a given cadence
 	}
 	return resp, err
 }
@@ -105,7 +105,6 @@ func (a *AsyncAdapter) awaitReportAvailability(scanID harbor.ScanRequestID) {
 }
 
 func (a *AsyncAdapter) listen(ctx context.Context) {
-
 	go func(ctx context.Context) {
 		a.log.Infof("Start listening for async updates")
 		for {

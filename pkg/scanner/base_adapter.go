@@ -4,16 +4,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
+	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 )
 
-var (
-	generatedAt = time.Now()
-)
+var generatedAt = time.Now()
 
 type BaseAdapter struct {
 	secureClient secure.Client

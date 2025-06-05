@@ -33,11 +33,22 @@
             mkShell {
               packages = [
                 # Add here dependencies for the project.
+                go
+                just
+                ginkgo
+                govulncheck
+                golangci-lint
+                pre-commit
+                gofumpt
               ];
 
               inputsFrom = [
                 harbor-adapter
               ];
+
+              shellHook = ''
+                pre-commit install
+              '';
             };
 
           formatter = pkgs.nixfmt-rfc-style;

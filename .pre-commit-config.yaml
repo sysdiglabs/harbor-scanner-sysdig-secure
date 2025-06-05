@@ -1,0 +1,31 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    - id: trailing-whitespace
+    - id: check-yaml
+      args:
+      - --allow-multiple-documents
+      - --unsafe
+    - id: no-commit-to-branch
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.33.0
+    hooks:
+    - id: check-github-workflows
+  - repo: local
+    hooks:
+    -   id: format
+        pass_filenames: false
+        name: Go fmt
+        entry: just fmt
+        language: system
+    -   id: lint
+        pass_filenames: false
+        name: Go lint
+        entry: just lint
+        language: system
+    -   id: check_vulns
+        pass_filenames: false
+        name: Check vulnerabilities
+        entry: trivy fs . --exit-code 1 --ignore-unfixed --quiet
+        language: system

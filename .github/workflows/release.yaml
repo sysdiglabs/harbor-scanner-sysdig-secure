@@ -77,8 +77,8 @@ jobs:
 
       - name: Push to Docker Hub
         run: |
-          echo docker push sysdiglabs/harbor-scanner-sysdig-secure:${{ needs.get-newer-version.outputs.new-version }}
-          echo docker push sysdiglabs/harbor-scanner-sysdig-secure:latest
+          docker push sysdiglabs/harbor-scanner-sysdig-secure:${{ needs.get-newer-version.outputs.new-version }}
+          docker push sysdiglabs/harbor-scanner-sysdig-secure:latest
 
   release:
     name: Create release at Github
@@ -111,7 +111,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: Sysdig LSP ${{ needs.get-newer-version.outputs.new-version }}
+          name: ${{ needs.get-newer-version.outputs.new-version }}
           tag_name: ${{ needs.get-newer-version.outputs.new-version }}
           prerelease: false
           body_path: RELEASE_CHANGELOG.md
