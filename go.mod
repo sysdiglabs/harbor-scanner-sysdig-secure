@@ -1,8 +1,6 @@
 module github.com/sysdiglabs/harbor-scanner-sysdig-secure
 
-go 1.22.0
-
-toolchain go1.22.1
+go 1.23.0
 
 require (
 	github.com/golang/mock v1.6.0
@@ -55,7 +53,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/net v0.25.0 // indirect
-	golang.org/x/oauth2 v0.20.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sys v0.20.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.15.0 // indirect
