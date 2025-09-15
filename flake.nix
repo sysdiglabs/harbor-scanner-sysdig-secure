@@ -25,7 +25,7 @@
         {
           packages = with pkgs; {
             inherit harbor-adapter;
-            harbor-adapter-docker = pkgsCross.gnu64.callPackage ./docker.nix { };
+            harbor-adapter-docker = callPackage ./docker.nix { };
             default = harbor-adapter;
           };
           devShells.default =
