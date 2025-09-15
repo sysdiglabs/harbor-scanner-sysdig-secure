@@ -25,7 +25,7 @@
         {
           packages = with pkgs; {
             inherit harbor-adapter;
-            harbor-adapter-docker = callPackage ./docker.nix { };
+            harbor-adapter-docker = pkgsCross.gnu64.callPackage ./docker.nix { };
             default = harbor-adapter;
           };
           devShells.default =
@@ -33,13 +33,14 @@
             mkShell {
               packages = [
                 # Add here dependencies for the project.
-                go
-                just
                 ginkgo
-                govulncheck
-                golangci-lint
-                pre-commit
+                go
                 gofumpt
+                golangci-lint
+                govulncheck
+                just
+                pre-commit
+                sd
               ];
 
               inputsFrom = [
