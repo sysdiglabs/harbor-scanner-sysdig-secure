@@ -8,8 +8,8 @@ test:
 
 bump:
 	nix flake update
-	go get -u -t -v ./...
-	go mod tidy
+	nix develop --command go get -u -t -v ./...
+	nix develop --command go mod tidy
 
 check: lint check-vulns test
 
