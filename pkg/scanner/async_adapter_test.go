@@ -57,10 +57,17 @@ var _ = Describe("Async-Adapter", func() {
 			It("adds an entry to the internal results cache to keep track of the request", func() {
 				wrappedAdapter.EXPECT().Scan(request).Return(expResponse, nil)
 				_, _ = adapter.Scan(request)
+
+				Eventually(func() bool {
+					adapter.lock.RLock()
+					defer adapter.lock.RUnlock()
+					_, ok := adapter.results[scanID]
+					return ok
+				}).Should(BeTrue())
+
 				adapter.lock.RLock()
-				cacheElem, cacheHit := adapter.results[scanID]
+				cacheElem := adapter.results[scanID]
 				adapter.lock.RUnlock()
-				Expect(cacheHit).To(BeTrue())
 				Expect(cacheElem).To(BeNil())
 			})
 			It("creates a background task that checks for the report status at a given cadence", func() {

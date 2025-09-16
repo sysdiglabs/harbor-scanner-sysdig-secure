@@ -216,10 +216,13 @@ func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequest
 	repository, shaDigest := i.DecodeScanResponseID(scanResponseID)
 
 	name := jobName(repository, shaDigest)
-	job, _ := i.k8sClient.BatchV1().Jobs(i.namespace).Get(context.Background(), name, metav1.GetOptions{})
-
-	if job == nil {
-		return harbor.VulnerabilityReport{}, ErrScanRequestIDNotFound
+	job, err := i.k8sClient.BatchV1().Jobs(i.namespace).Get(context.Background(), name, metav1.GetOptions{})
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return harbor.VulnerabilityReport{}, ErrScanRequestIDNotFound
+		} else {
+			return harbor.VulnerabilityReport{}, fmt.Errorf("error retrieving jobs from k8s: %w", err)
+		}
 	}
 
 	if job.Status.Active != 0 {

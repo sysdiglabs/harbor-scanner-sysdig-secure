@@ -41,6 +41,7 @@
                 just
                 pre-commit
                 sd
+                trivy
               ];
 
               inputsFrom = [
