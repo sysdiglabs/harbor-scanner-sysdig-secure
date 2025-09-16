@@ -37,7 +37,7 @@ jobs:
         run: |
           VERSION="${{ steps.extract.outputs.version }}"
           LATEST="${{ steps.latest.outputs.latest_tag }}"
-          if [ "$VERSION" = "$LATEST" ]; then
+          if [ "v$VERSION" = "$LATEST" ]; then
             echo "No new version detected."
             echo "new_version=" >> $GITHUB_OUTPUT
           else
@@ -102,8 +102,8 @@ jobs:
       - name: Install git-chglog
         run: nix profile install nixpkgs#git-chglog
 
-      - name: Tag with version ${{ needs.get-newer-version.outputs.new-version }}
-        run: git tag ${{ needs.get-newer-version.outputs.new-version }}
+      - name: Tag with version v${{ needs.get-newer-version.outputs.new-version }}
+        run: git tag v${{ needs.get-newer-version.outputs.new-version }}
 
       - name: Generate changelog
         run: git-chglog -c .github/git-chglog/config.yml -o RELEASE_CHANGELOG.md $(git describe --tags $(git rev-list --tags --max-count=1))
@@ -111,7 +111,7 @@ jobs:
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          name: ${{ needs.get-newer-version.outputs.new-version }}
-          tag_name: ${{ needs.get-newer-version.outputs.new-version }}
+          name: v${{ needs.get-newer-version.outputs.new-version }}
+          tag_name: v${{ needs.get-newer-version.outputs.new-version }}
           prerelease: false
           body_path: RELEASE_CHANGELOG.md
