@@ -4,16 +4,15 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
-	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
+	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
 )
 
-var (
-	generatedAt = time.Now()
-)
+var generatedAt = time.Now()
 
 type BaseAdapter struct {
 	secureClient secure.Client
@@ -36,11 +35,6 @@ func (b *BaseAdapter) getScanner() *harbor.Scanner {
 
 func (b *BaseAdapter) GetMetadata() (harbor.ScannerAdapterMetadata, error) {
 	if b.scannerAdapterMetadata == nil {
-		feeds, err := b.secureClient.GetFeeds()
-		if err != nil {
-			return harbor.ScannerAdapterMetadata{}, err
-		}
-
 		b.scannerAdapterMetadata = &harbor.ScannerAdapterMetadata{
 			Scanner: b.getScanner(),
 			Capabilities: []harbor.ScannerCapability{
@@ -56,26 +50,12 @@ func (b *BaseAdapter) GetMetadata() (harbor.ScannerAdapterMetadata, error) {
 			},
 			Properties: map[string]string{
 				"harbor.scanner-adapter/scanner-type":                      "os-package-vulnerability",
-				"harbor.scanner-adapter/vulnerability-database-updated-at": lastSync(feeds).Format(time.RFC3339),
+				"harbor.scanner-adapter/vulnerability-database-updated-at": time.Now().Format(time.RFC3339),
 			},
 		}
 	}
 
 	return *b.scannerAdapterMetadata, nil
-}
-
-func lastSync(feeds []secure.Feed) time.Time {
-	var result time.Time
-
-	for _, feed := range feeds {
-		for _, group := range feed.Groups {
-			if result.Before(group.LastSync) {
-				result = group.LastSync
-			}
-		}
-	}
-
-	return result
 }
 
 func (b *BaseAdapter) CreateScanResponse(repository string, shaDigest string) harbor.ScanResponse {

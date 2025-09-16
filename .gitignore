@@ -16,3 +16,6 @@
 # vendor/
 
 .idea
+.direnv/
+.secrets
+result

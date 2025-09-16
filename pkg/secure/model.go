@@ -72,7 +72,7 @@ type Vulnerability struct {
 	URL            string     `json:"url"`
 	Vuln           string     `json:"vuln"`
 	DisclosureDate string     `json:"disclosureDate"`
-	//VulnId         string     // Not serialised either, used for description querying
+	// VulnId         string     // Not serialised either, used for description querying
 }
 
 type NVDData struct {

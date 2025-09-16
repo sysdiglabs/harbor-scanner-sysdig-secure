@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
 
@@ -57,10 +57,17 @@ var _ = Describe("Async-Adapter", func() {
 			It("adds an entry to the internal results cache to keep track of the request", func() {
 				wrappedAdapter.EXPECT().Scan(request).Return(expResponse, nil)
 				_, _ = adapter.Scan(request)
+
+				Eventually(func() bool {
+					adapter.lock.RLock()
+					defer adapter.lock.RUnlock()
+					_, ok := adapter.results[scanID]
+					return ok
+				}).Should(BeTrue())
+
 				adapter.lock.RLock()
-				cacheElem, cacheHit := adapter.results[scanID]
+				cacheElem := adapter.results[scanID]
 				adapter.lock.RUnlock()
-				Expect(cacheHit).To(BeTrue())
 				Expect(cacheElem).To(BeNil())
 			})
 			It("creates a background task that checks for the report status at a given cadence", func() {
@@ -121,13 +128,6 @@ var _ = Describe("Async-Adapter", func() {
 				wrappedAdapter.EXPECT().Scan(request).Return(scanRequestResponse, nil)
 			})
 
-			/*It("returns not-ready error", func() {
-				wrappedAdapter.EXPECT().GetVulnerabilityReport(scanRequestResponse.ID).Return(harbor.VulnerabilityReport{}, ErrVulnerabilityReportNotReady).AnyTimes()
-				_, _ = adapter.Scan(request)
-				time.Sleep(asyncAdapterRefreshRate * 6)
-				_, err := adapter.GetVulnerabilityReport(scanRequestResponse.ID)
-				Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
-			})*/
 			It("exists a background task that checks for the report status at a given cadence", func() {
 				wrappedAdapter.EXPECT().GetVulnerabilityReport(scanRequestResponse.ID).Return(harbor.VulnerabilityReport{}, ErrVulnerabilityReportNotReady).MinTimes(5)
 				_, _ = adapter.Scan(request)
@@ -196,6 +196,5 @@ var _ = Describe("Async-Adapter", func() {
 				})
 			})
 		})
-
 	})
 })

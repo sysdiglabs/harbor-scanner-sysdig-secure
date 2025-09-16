@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	log "github.com/sirupsen/logrus"
 
@@ -50,9 +50,9 @@ func saveEnv(keys []string) map[string]envItem {
 func restoreEnv(savedItems map[string]envItem) {
 	for key, item := range savedItems {
 		if item.defined {
-			os.Setenv(key, item.value)
+			Expect(os.Setenv(key, item.value)).To(Succeed())
 		} else {
-			os.Unsetenv(key)
+			Expect(os.Unsetenv(key)).To(Succeed())
 		}
 	}
 }
@@ -85,7 +85,8 @@ var _ = Describe("InlineAdapter", func() {
 		})
 
 		It("schedules the scanning job within namespace", func() {
-			adapter.Scan(scanRequest())
+			_, err := adapter.Scan(scanRequest())
+			Expect(err).To(Succeed())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
@@ -93,16 +94,16 @@ var _ = Describe("InlineAdapter", func() {
 		})
 
 		It("proxy env vars are included in the Job environment", func() {
-
 			savedEnv := saveEnv([]string{"http_proxy", "https_proxy", "HTTPS_PROXY", "no_proxy", "NO_PROXY"})
 
-			os.Setenv("http_proxy", "http_proxy-value")
-			os.Setenv("https_proxy", "https_proxy-value")
-			os.Setenv("HTTPS_PROXY", "HTTPS_PROXY-value")
-			os.Setenv("no_proxy", "no_proxy-value")
-			os.Setenv("NO_PROXY", "NO_PROXY-value")
+			Expect(os.Setenv("http_proxy", "http_proxy-value")).To(Succeed())
+			Expect(os.Setenv("https_proxy", "https_proxy-value")).To(Succeed())
+			Expect(os.Setenv("HTTPS_PROXY", "HTTPS_PROXY-value")).To(Succeed())
+			Expect(os.Setenv("no_proxy", "no_proxy-value")).To(Succeed())
+			Expect(os.Setenv("NO_PROXY", "NO_PROXY-value")).To(Succeed())
 
-			adapter.Scan(scanRequest())
+			_, err := adapter.Scan(scanRequest())
+			Expect(err).To(Succeed())
 
 			restoreEnv(savedEnv)
 
@@ -116,10 +117,10 @@ var _ = Describe("InlineAdapter", func() {
 		})
 
 		It("adds --skiptlsverify in insecure", func() {
-
 			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", false, log.StandardLogger())
 
-			adapter.Scan(scanRequest())
+			_, err := adapter.Scan(scanRequest())
+			Expect(err).To(Succeed())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
@@ -127,10 +128,10 @@ var _ = Describe("InlineAdapter", func() {
 		})
 
 		It("adds extra parameters", func() {
-
 			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "--foo --bar", false, log.StandardLogger())
 
-			adapter.Scan(scanRequest())
+			_, err := adapter.Scan(scanRequest())
+			Expect(err).To(Succeed())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
 
@@ -139,7 +140,8 @@ var _ = Describe("InlineAdapter", func() {
 
 		Context("when a job already exists", func() {
 			It("returns the scanID for checking if scan has finished", func() {
-				k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
+				_, err := k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
+				Expect(err).To(Succeed())
 
 				result, err := adapter.Scan(scanRequest())
 
@@ -150,7 +152,6 @@ var _ = Describe("InlineAdapter", func() {
 	})
 
 	Context("when getting the vulnerability report for an image", func() {
-
 		Context("when no job for image exists", func() {
 			It("returns a ScanRequestID Not Found Error", func() {
 				_, err := adapter.GetVulnerabilityReport(scanID)
@@ -161,9 +162,10 @@ var _ = Describe("InlineAdapter", func() {
 
 		Context("when image is still being scanned", func() {
 			It("returns a VulnerabilityReport is not Ready Error", func() {
-				k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
+				_, err := k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), activeJob(), metav1.CreateOptions{})
+				Expect(err).To(Succeed())
 
-				_, err := adapter.GetVulnerabilityReport(scanID)
+				_, err = adapter.GetVulnerabilityReport(scanID)
 
 				Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
 			})
@@ -172,15 +174,17 @@ var _ = Describe("InlineAdapter", func() {
 		Context("when image scan is finished", func() {
 			BeforeEach(func() {
 				job := finishedJob()
-				k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), job, metav1.CreateOptions{})
+				_, err := k8sClient.BatchV1().Jobs(namespace).Create(context.Background(), job, metav1.CreateOptions{})
+				Expect(err).To(Succeed())
 				pod := finishedPodForJob(job)
-				k8sClient.CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
+				_, err = k8sClient.CoreV1().Pods(namespace).Create(context.Background(), pod, metav1.CreateOptions{})
+				Expect(err).To(Succeed())
 			})
 
 			It("queries Secure for the vulnerability list", func() {
 				client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
 				client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
-				//client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
+				// client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
 
 				result, _ := adapter.GetVulnerabilityReport(scanID)
 
@@ -197,7 +201,6 @@ var _ = Describe("InlineAdapter", func() {
 				})
 			})
 		})
-
 	})
 })
 
@@ -240,7 +243,8 @@ func job() *batchv1.Job {
 									Name:      "REGISTRY_USER",
 									Value:     user,
 									ValueFrom: nil,
-								}, {
+								},
+								{
 									Name:      "REGISTRY_PASSWORD",
 									Value:     password,
 									ValueFrom: nil,
@@ -279,7 +283,7 @@ func finishedPodForJob(j *batchv1.Job) *corev1.Pod {
 		},
 		Status: corev1.PodStatus{
 			ContainerStatuses: []corev1.ContainerStatus{
-				corev1.ContainerStatus{
+				{
 					State: corev1.ContainerState{
 						Terminated: &corev1.ContainerStateTerminated{
 							ExitCode: 0,

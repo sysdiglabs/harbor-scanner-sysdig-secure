@@ -60,7 +60,7 @@ func configure() error {
 	pflag.String("cli_scanning_extra_params", "", "Extra parameters to provide to cli-scanner")
 	pflag.String("cli_scanner_image", "", "Extra parameters to provide to cli-scanner")
 
-	pflag.VisitAll(func(flag *pflag.Flag) { viper.BindPFlag(flag.Name, flag) })
+	pflag.VisitAll(func(flag *pflag.Flag) { _ = viper.BindPFlag(flag.Name, flag) })
 
 	pflag.Parse()
 

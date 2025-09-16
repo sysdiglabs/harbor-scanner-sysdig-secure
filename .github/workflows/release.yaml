@@ -1,44 +1,117 @@
-name: Release
+name: Release new version
 
 on:
   push:
-    tags:
-      - v*
-
+    branches:
+      - master
+    paths:
+      - package.nix
 jobs:
-  release:
+  get-newer-version:
     runs-on: ubuntu-latest
-
+    outputs:
+      new-version: ${{ steps.check.outputs.new_version }}
     steps:
-    - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
 
-    - name: Extract tag name
-      id: tag
-      run: echo ::set-output name=VERSION::$(echo "${{ github.ref }}" | sed -e 's/.*\/v\(.*\)/\1/')
+      - name: Extract version from package.nix
+        id: extract
+        run: |
+          VERSION=$(grep -m1 'version\s*=' package.nix | sed -E 's/.*version\s*=\s*"([^"]+)".*/\1/')
+          echo "Extracted version: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Create release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref }}
-        release_name: ${{ github.ref }}
-        draft: true
-        prerelease: false
-        body: |
-          This is the ${{ github.ref }} release of Harbor Scanner Adapter for Sysdig Secure
+      - name: Get latest tag
+        id: latest
+        run: |
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "none")
+          echo "Latest tag: $LATEST_TAG"
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
 
-          ### Major Changes
-          ### Minor Changes
-          ### Bug fixes
+      - name: Check if version is new
+        id: check
+        run: |
+          VERSION="${{ steps.extract.outputs.version }}"
+          LATEST="${{ steps.latest.outputs.latest_tag }}"
+          if [ "v$VERSION" = "$LATEST" ]; then
+            echo "No new version detected."
+            echo "new_version=" >> $GITHUB_OUTPUT
+          else
+            echo "New version detected: $VERSION"
+            echo "new_version=$VERSION" >> $GITHUB_OUTPUT
+          fi
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v1
-      with:
-        username: ${{ secrets.SYSDIGLABS_DOCKERHUB_USER }}
-        password: ${{ secrets.SYSDIGLABS_DOCKERHUB_TOKEN }}
-        repository: sysdiglabs/harbor-scanner-sysdig-secure
-        add_git_labels: true
-        dockerfile: build/Dockerfile
-        tags: latest, ${{ steps.tag.outputs.VERSION }}
+  build-push-dockerhub:
+    name: Build and Push to DockerHub
+    needs: [ get-newer-version ]
+    if: needs.get-newer-version.outputs.new-version != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Configure Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Build
+        run: nix build -L .#harbor-adapter-docker
+
+      - name: Load in docker
+        run: |
+          docker load -i ./result
+          docker tag sysdiglabs/harbor-scanner-sysdig-secure:${{ needs.get-newer-version.outputs.new-version }} sysdiglabs/harbor-scanner-sysdig-secure:latest
+          docker images
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.SYSDIGLABS_DOCKERHUB_USER }}
+          password: ${{ secrets.SYSDIGLABS_DOCKERHUB_TOKEN }}
+
+      - name: Push to Docker Hub
+        run: |
+          docker push sysdiglabs/harbor-scanner-sysdig-secure:${{ needs.get-newer-version.outputs.new-version }}
+          docker push sysdiglabs/harbor-scanner-sysdig-secure:latest
+
+  release:
+    name: Create release at Github
+    needs: [ get-newer-version ]
+    if: needs.get-newer-version.outputs.new-version != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required for release creation
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Configure Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Install git-chglog
+        run: nix profile install nixpkgs#git-chglog
+
+      - name: Tag with version v${{ needs.get-newer-version.outputs.new-version }}
+        run: git tag v${{ needs.get-newer-version.outputs.new-version }}
+
+      - name: Generate changelog
+        run: git-chglog -c .github/git-chglog/config.yml -o RELEASE_CHANGELOG.md $(git describe --tags $(git rev-list --tags --max-count=1))
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ needs.get-newer-version.outputs.new-version }}
+          tag_name: v${{ needs.get-newer-version.outputs.new-version }}
+          prerelease: false
+          body_path: RELEASE_CHANGELOG.md

@@ -3,9 +3,10 @@ package scanner
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/secure"
-	"os"
 )
 
 const (
@@ -20,117 +21,6 @@ var (
 	createdAt = generatedAt
 )
 
-/*
-	var _ = Describe("BackendAdapter", func() {
-		var (
-			controller *gomock.Controller
-			client     *mocks.MockClient
-			adapter    Adapter
-		)
-
-		BeforeEach(func() {
-			controller = gomock.NewController(GinkgoT())
-			client = mocks.NewMockClient(controller)
-			adapter = NewBackendAdapter(client)
-		})
-
-		AfterEach(func() {
-			controller.Finish()
-		})
-
-		Context("when scanning an image", func() {
-			It("sends the repository and tag to Sysdig Secure", func() {
-				client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
-
-				secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-				client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
-
-				result, _ := adapter.Scan(scanRequest())
-
-				Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
-			})
-
-			Context("and it does not send tag", func() {
-				It("sends the repository only to Sysdig Secure", func() {
-					client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
-
-					secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-					client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent@an image digest", false).Return(secureResponse, nil)
-
-					result, _ := adapter.Scan(scanRequestWithoutTag())
-
-					Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
-				})
-			})
-
-			Context("when registry already exists in Secure", func() {
-				It("updates registry with new credentials and queues the image", func() {
-					client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(secure.ErrRegistryAlreadyExists)
-					client.EXPECT().UpdateRegistry("harbor.sysdig-demo.zone", user, password)
-					secureResponse := secure.ScanResponse{ImageDigest: imageDigest}
-					client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secureResponse, nil)
-
-					result, _ := adapter.Scan(scanRequest())
-
-					Expect(result).To(Equal(harbor.ScanResponse{ID: scanID}))
-				})
-			})
-
-			Context("when Secure fails to add the image to the scanning queue", func() {
-				It("returns the error", func() {
-					client.EXPECT().AddRegistry("harbor.sysdig-demo.zone", user, password).Return(nil)
-					client.EXPECT().AddImage("harbor.sysdig-demo.zone/sysdig/agent:9.7.0", false).Return(secure.ScanResponse{}, errSecure)
-
-					_, err := adapter.Scan(scanRequest())
-
-					Expect(err).To(MatchError(errSecure))
-				})
-			})
-		})
-
-		Context("when getting the vulnerability report for an image", func() {
-			It("queries Secure for the vulnerability list", func() {
-				client.EXPECT().GetVulnerabilities(imageDigest).Return(secureVulnerabilityReport(), nil)
-				client.EXPECT().GetImage(imageDigest).Return(scanResponse(), nil)
-				client.EXPECT().GetVulnerabilityDescription("CVE-2019-9948", "CVE-2019-9946").Return(vulnerabilitiesDescription(), nil)
-
-				result, _ := adapter.GetVulnerabilityReport(scanID)
-
-				Expect(result).To(Equal(vulnerabilityReport()))
-			})
-
-			Context("when Secure returns an error", func() {
-				Context("when Secure cannot find the image scanned", func() {
-					It("returns a ScanRequestID Not Found Error", func() {
-						client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrImageNotFound)
-
-						_, err := adapter.GetVulnerabilityReport(scanID)
-
-						Expect(err).To(MatchError(ErrScanRequestIDNotFound))
-					})
-				})
-
-				Context("when Secure is still scanning the image", func() {
-					It("returns a VulnerabilityReport is not Ready Error", func() {
-						client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, secure.ErrVulnerabilityReportNotReady)
-
-						_, err := adapter.GetVulnerabilityReport(scanID)
-
-						Expect(err).To(MatchError(ErrVulnerabilityReportNotReady))
-					})
-				})
-
-				It("returns the error", func() {
-					client.EXPECT().GetVulnerabilities(imageDigest).Return(secure.VulnerabilityReport{}, errSecure)
-
-					_, err := adapter.GetVulnerabilityReport(scanID)
-
-					Expect(err).To(MatchError(errSecure))
-				})
-			})
-		})
-	})
-*/
 func scanRequest() harbor.ScanRequest {
 	return harbor.ScanRequest{
 		Registry: &harbor.Registry{
@@ -141,21 +31,6 @@ func scanRequest() harbor.ScanRequest {
 			Repository: "sysdig/agent",
 			Digest:     imageDigest,
 			Tag:        "9.7.0",
-			MimeType:   "application/vnd.docker.distribution.manifest.v2+json",
-		},
-	}
-}
-
-func scanRequestWithoutTag() harbor.ScanRequest {
-	return harbor.ScanRequest{
-		Registry: &harbor.Registry{
-			URL:           "https://harbor.sysdig-demo.zone",
-			Authorization: "Basic cm9ib3QkOWY2NzExZDEtODM0ZC0xMWVhLTg2N2YtNzYxMDNkMDhkY2E4OmV5SmhiR2NpT2lKU1V6STFOaUlzSW5SNWNDSTZJa3BYVkNKOS5leUpsZUhBaU9qRTFPVEF3TURrNU9Ua3NJbWxoZENJNk1UVTROelF4TnprNU9Td2lhWE56SWpvaWFHRnlZbTl5TFhSdmEyVnVMV1JsWm1GMWJIUkpjM04xWlhJaUxDSnBaQ0k2T1N3aWNHbGtJam95TENKaFkyTmxjM01pT2x0N0lsSmxjMjkxY21ObElqb2lMM0J5YjJwbFkzUXZNaTl5WlhCdmMybDBiM0o1SWl3aVFXTjBhVzl1SWpvaWMyTmhibTVsY2kxd2RXeHNJaXdpUldabVpXTjBJam9pSW4xZGZRLkEzX2FUenZ4cVNUdmwyNnBRS2E5N2F5MTV6UlBDOUs1NU5FMFdiRXlPc1kzbTBLRnotSHVTRGF0bmNXTFNZdk9sY0dWZHlzS2xGM0pYWVdJalE3dEVJNFY3NldBOVVNb2ktZnI5dkVFZFdMRjVDMXVXWkpPel9TNzJzUTNHMUJ6c0xwM0h5V2U5Wk41RUJLOW1oWHpZTnYyck9OWXJyMFVKZUJtTm5NZjJtVTNzSDcxT09fRzZKdlJsNWZ3RlNMU1l4OG5RczgyUGhmVmh4NTB3UnVXbF96eWVDQ0R5X3l0THpqUkJ2WndLdUk5aVZJeGdNMXBSZktHMTVOV01IZmwwbGNZbmptN2YxX1dGR0t0VmRka0xPVElDSzBfRlB0ZWYxTDhBMTZvem9fMk5BMzJXRDlQc3RkY1R1RDM3WGJaNkFGWFVBWkZvWkxmQ0VXOTdtdElaQlkydVlNd0RRdGM2Tm1lNG8zWWEtTW5CRUlBczlWaTlkNWE0cGtmN1R3by14akktOUVTZ1Z6NzlZcUwtX09uZWNRUE5KOXlBRnRKdXhRN1N0ZnNDSVp4ODRoaDVWZGNabVc5amxlelJIaDRoVEFqc05tck9CRlRBalB5YVhrOThTZTNGajBFdjNiQ2hvZDYzb2c0ZnJFN19mRTdIbm9CS1ZQSFJBZEJoSjJ5ckFpUHltZmlqX2tENGtlMVZiMEF4bUdHT3dSUDJLM1RaTnFFZEtjcTg5bFU2bEhZVjJVZnJXY2h1RjN1NGllTkVDMUJHdTFfbV9jNTVmMFlaSDFGQXE2ZXZDeUEwSm5GdVh6TzRjQ3hDN1dIelhYUkdTQzlMbTNMRjdjYmFaQWdGajVkMzRnYmdVUW1Kc3Q4blBscFctS3R3UkwtcEhDNm1pcHVuQ0J2OWJV",
-		},
-		Artifact: &harbor.Artifact{
-			Repository: "sysdig/agent",
-			Digest:     imageDigest,
-			Tag:        "",
 			MimeType:   "application/vnd.docker.distribution.manifest.v2+json",
 		},
 	}
@@ -224,13 +99,6 @@ func secureVulnerabilityReport() secure.VulnerabilityReport {
 				},
 			},
 		},
-	}
-}
-
-func vulnerabilitiesDescription() map[string]string {
-	return map[string]string{
-		"CVE-2019-9948": "Description for CVE-2019-9948",
-		"CVE-2019-9946": "Description for CVE-2019-9946",
 	}
 }
 
