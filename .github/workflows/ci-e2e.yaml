@@ -1,0 +1,196 @@
+name: e2e-harbor-integration
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  e2e-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: nix develop --command bash -v {0}
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Start Minikube (Docker driver)
+        id: minikube
+        run: |
+          minikube start --driver=docker --cpus=2 --memory=2G --force
+          echo "ip=$(minikube ip)" >> "$GITHUB_OUTPUT"
+
+      - name: Helm repos
+        run: |
+          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add sysdig https://charts.sysdig.com
+          helm repo update
+
+      - name: Install Harbor (NodePort)
+        id: harbor
+        env:
+          MINIKUBE_IP: ${{ steps.minikube.outputs.ip }}
+        run: |
+          HARBOR_URL="https://${MINIKUBE_IP}:30003"
+
+          helm install harbor bitnami/harbor \
+            --namespace harbor \
+            --create-namespace \
+            --set service.type=NodePort \
+            --set service.nodePorts.http=30002 \
+            --set service.nodePorts.https=30003 \
+            --set externalURL="${HARBOR_URL}"
+
+          HARBOR_USERNAME=admin
+          HARBOR_PASSWORD=$(kubectl get secret -n harbor harbor-core-envvars -o jsonpath='{.data.HARBOR_ADMIN_PASSWORD}' | base64 -d)
+          echo "::add-mask::${HARBOR_PASSWORD}"
+
+          echo "url=${HARBOR_URL}" >> "$GITHUB_OUTPUT"
+          echo "username=${HARBOR_USERNAME}" >> "$GITHUB_OUTPUT"
+          echo "password=${HARBOR_PASSWORD}" >> "$GITHUB_OUTPUT"
+
+      - name: Build adapter image with Nix
+        run: nix build .#harbor-adapter-docker
+
+      - name: Load image into Docker & Minikube
+        id: image_in_docker
+        run: |
+          PULL_STRING=$(docker load -i ./result -q | tail -n1 | cut -d: -f2- | tr -d ' ')
+          REPOSITORY=$(echo "${PULL_STRING}" | cut -d: -f1)
+          TAG=$(echo "${PULL_STRING}" | cut -d: -f2)
+
+          echo "pull_string=${PULL_STRING}" >> "$GITHUB_OUTPUT"
+          echo "repository=${REPOSITORY}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Load image into Minikube
+        env:
+          PULL_STRING: ${{ steps.image_in_docker.outputs.pull_string }}
+        run: |
+          minikube image load "${PULL_STRING}"
+
+      - name: Deploy Sysdig Harbor scanner (use local image)
+        env:
+          REPOSITORY: ${{ steps.image_in_docker.outputs.repository }}
+          TAG: ${{ steps.image_in_docker.outputs.tag }}
+          SECURE_API_TOKEN: ${{ secrets.SECURE_API_TOKEN }}
+          SECURE_URL: ${{ secrets.SECURE_URL }}
+        run: |
+          helm install harbor-scanner-sysdig-secure sysdig/harbor-scanner-sysdig-secure \
+            --wait \
+            --timeout 300s \
+            --namespace harbor \
+            --create-namespace \
+            --set image.repository=$REPOSITORY \
+            --set image.tag=$TAG \
+            --set image.pullPolicy=Never \
+            --set sysdig.secure.apiToken="$SECURE_API_TOKEN" \
+            --set sysdig.secure.url="$SECURE_URL" \
+            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:1.22.6"
+
+      - name: Wait for Harbor to be ready
+        run: |
+          kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=harbor -n harbor --timeout=600s
+          kubectl get pods -n harbor -o wide
+
+      - name: Log in with harbor-cli
+        env:
+          HARBOR_URL: ${{ steps.harbor.outputs.url }}
+          HARBOR_USERNAME: ${{ steps.harbor.outputs.username }}
+          HARBOR_PASSWORD: ${{ steps.harbor.outputs.password }}
+        run: |
+          harbor login "$HARBOR_URL" --username "$HARBOR_USERNAME" --password "$HARBOR_PASSWORD"
+
+      - name: Register scanner via Harbor API and set as default
+        run: |
+          harbor scanner create \
+            --name "Sysdig-Local" \
+            --description "Sysdig Scanner" \
+            --url "http://harbor-scanner-sysdig-secure.harbor.svc.cluster.local:5000" \
+            --skip-cert-verification \
+            --auth None
+
+          harbor scanner set-default "Sysdig-Local"
+
+      - name: Push sample image
+        id: image_in_harbor
+        env:
+          MINIKUBE_IP: ${{ steps.minikube.outputs.ip }}
+          HARBOR_URL: ${{ steps.harbor.outputs.url }}
+          HARBOR_USERNAME: ${{ steps.harbor.outputs.username }}
+          HARBOR_PASSWORD: ${{ steps.harbor.outputs.password }}
+        run: |
+          REPO="alpine"
+          PROJECT="library"
+          NEW_TAG="test"
+
+          skopeo \
+            --policy <(echo '{"default":[{"type":"insecureAcceptAnything"}]}') \
+            copy "docker://${REPO}:latest" \
+            "docker://${MINIKUBE_IP}:30003/${PROJECT}/${REPO}:${NEW_TAG}" \
+            --dest-tls-verify=false \
+            --dest-creds="${HARBOR_USERNAME}:${HARBOR_PASSWORD}"
+
+          DIGEST=$(harbor artifact list "${PROJECT}"/"${REPO}" -o json | jq -r .Payload[].digest)
+
+          echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
+          echo "project=${PROJECT}" >> "$GITHUB_OUTPUT"
+          echo "tag=${NEW_TAG}" >> "$GITHUB_OUTPUT"
+          echo "digest=${DIGEST}" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger scan
+        env:
+          PROJECT: ${{ steps.image_in_harbor.outputs.project }}
+          REPO: ${{ steps.image_in_harbor.outputs.repo }}
+          DIGEST: ${{ steps.image_in_harbor.outputs.digest }}
+        run: |
+          harbor artifact scan start "${PROJECT}/${REPO}@${DIGEST}" -v
+
+      - name: Fetch logs from CLI Scanner
+        run: |
+          for i in {1..6}; do kubectl get pods -n harbor -l created-by=harbor-scanner-sysdig-secure -o name | grep -q . && break; sleep 5; done
+          kubectl wait -n harbor --for=condition=ContainersReady pod -l created-by=harbor-scanner-sysdig-secure --timeout=300s
+          kubectl logs -n harbor -l created-by=harbor-scanner-sysdig-secure --follow
+
+      - name: Check if Vulnerability report is generated in Harbor
+        env:
+          PROJECT: ${{ steps.image_in_harbor.outputs.project }}
+          REPO: ${{ steps.image_in_harbor.outputs.repo }}
+          DIGEST: ${{ steps.image_in_harbor.outputs.digest }}
+          HARBOR_USERNAME: ${{ steps.harbor.outputs.username }}
+          HARBOR_PASSWORD: ${{ steps.harbor.outputs.password }}
+          HARBOR_URL: ${{ steps.harbor.outputs.url }}
+        run: |
+          for i in $(seq 1 30); do
+            REPORT=$(
+              curl -sk -u "$HARBOR_USERNAME:$HARBOR_PASSWORD" \
+                -H 'Accept: application/json' \
+                "${HARBOR_URL}/api/v2.0/projects/${PROJECT}/repositories/${REPO}/artifacts/${DIGEST}/additions/vulnerabilities"
+            )
+
+            GENERATED_AT=$(echo "$REPORT" | jq -r '."application/vnd.security.vulnerability.report; version=1.1".generated_at')
+
+            if [ -n "$GENERATED_AT" ] && [ "$GENERATED_AT" != "null" ]; then
+              echo "Scan completed successfully, vulnerability report is available ✅"
+              echo "Report details: $REPORT"
+              exit 0
+            else
+              echo "Polling attempt ${i}/30: Vulnerability report not yet available."
+            fi
+
+            sleep 10
+          done
+
+          echo "Scan did not complete in time ❌"
+          exit 1
+      - name: Delete cluster
+        if: always()
+        run: |
+          minikube delete || true

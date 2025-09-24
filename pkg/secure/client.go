@@ -1,7 +1,6 @@
 package secure
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,7 +36,7 @@ func NewClient(apiToken string, secureURL string, verifySSL bool) Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 
 	if !verifySSL {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		transport.TLSClientConfig.InsecureSkipVerify = true
 	}
 
 	return &client{

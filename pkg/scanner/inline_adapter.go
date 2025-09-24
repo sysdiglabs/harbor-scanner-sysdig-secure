@@ -129,7 +129,7 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 		ValueFrom: nil,
 	})
 	envVars = appendLocalEnvVar(envVars, "NO_PROXY")
-	cmdString := fmt.Sprintf("/home/nonroot/sysdig-cli-scanner -a %s --skiptlsverify --output-json=output.json ", i.secureURL)
+	cmdString := fmt.Sprintf("/home/nonroot/sysdig-cli-scanner -a %s --skiptlsverify --console-log --output-json=output.json ", i.secureURL)
 	// Add skiptlsverify if insecure
 	if !i.verifySSL {
 		cmdString += "--skiptlsverify "
@@ -169,11 +169,19 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+			Labels: map[string]string{
+				"created-by": "harbor-scanner-sysdig-secure",
+			},
 		},
 		Spec: batchv1.JobSpec{
 			TTLSecondsAfterFinished: &i.jobTTL,
 			BackoffLimit:            &backoffLimit,
 			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						"created-by": "harbor-scanner-sysdig-secure",
+					},
+				},
 				Spec: corev1.PodSpec{
 					RestartPolicy:   corev1.RestartPolicyNever,
 					SecurityContext: podSecurityContext,
