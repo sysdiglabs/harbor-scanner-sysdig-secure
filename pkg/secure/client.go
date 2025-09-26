@@ -1,7 +1,6 @@
 package secure
 
 import (
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -37,7 +36,7 @@ func NewClient(apiToken string, secureURL string, verifySSL bool) Client {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 
 	if !verifySSL {
-		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+		transport.TLSClientConfig.InsecureSkipVerify = true
 	}
 
 	return &client{
@@ -224,7 +223,7 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 		return result, err
 	}
 	if err = json.Unmarshal(body, &checkScanResultResponse); err != nil {
-		return result, err
+		return result, fmt.Errorf("error unmarshalling body response %s: %w", string(body), err)
 	}
 
 	statusMap := map[string]bool{

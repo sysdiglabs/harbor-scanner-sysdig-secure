@@ -42,6 +42,11 @@
                 pre-commit
                 sd
                 trivy
+                minikube
+                kubernetes-helm
+                kubectl
+                skopeo
+                harbor-cli
               ];
 
               inputsFrom = [
