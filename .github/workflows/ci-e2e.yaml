@@ -80,8 +80,8 @@ jobs:
         env:
           REPOSITORY: ${{ steps.image_in_docker.outputs.repository }}
           TAG: ${{ steps.image_in_docker.outputs.tag }}
-          SECURE_API_TOKEN: ${{ secrets.SECURE_API_TOKEN }}
-          SECURE_URL: ${{ secrets.SECURE_URL }}
+          SECURE_API_TOKEN: ${{ secrets.KUBELAB_SECURE_API_TOKEN }}
+          SECURE_URL: ${{ secrets.SECURE_URL || 'https://secure.sysdig.com' }}
         run: |
           helm install harbor-scanner-sysdig-secure sysdig/harbor-scanner-sysdig-secure \
             --wait \
