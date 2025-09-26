@@ -43,6 +43,7 @@ jobs:
           helm install harbor bitnami/harbor \
             --namespace harbor \
             --create-namespace \
+            --set trivy.enabled=false \
             --set service.type=NodePort \
             --set service.nodePorts.http=30002 \
             --set service.nodePorts.https=30003 \
