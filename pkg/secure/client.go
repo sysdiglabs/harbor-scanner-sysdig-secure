@@ -223,7 +223,7 @@ func (s *client) GetVulnerabilities(shaDigest string) (VulnerabilityReport, erro
 		return result, err
 	}
 	if err = json.Unmarshal(body, &checkScanResultResponse); err != nil {
-		return result, err
+		return result, fmt.Errorf("error unmarshalling body response %s: %w", string(body), err)
 	}
 
 	statusMap := map[string]bool{
