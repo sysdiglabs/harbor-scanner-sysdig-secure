@@ -29,7 +29,7 @@ jobs:
 
       - name: Helm repos
         run: |
-          helm repo add bitnami https://charts.bitnami.com/bitnami
+          helm repo add goharbor https://helm.goharbor.io
           helm repo add sysdig https://charts.sysdig.com
           helm repo update
 
@@ -40,17 +40,18 @@ jobs:
         run: |
           HARBOR_URL="https://${MINIKUBE_IP}:30003"
 
-          helm install harbor bitnami/harbor \
+          helm install harbor goharbor/harbor \
             --namespace harbor \
             --create-namespace \
             --set trivy.enabled=false \
-            --set service.type=NodePort \
-            --set service.nodePorts.http=30002 \
-            --set service.nodePorts.https=30003 \
+            --set expose.type=nodePort \
+            --set expose.nodePort.ports.http.port=30002 \
+            --set expose.nodePort.ports.https.port=30003 \
+            --set expose.tls.auto.commonName=${MINIKUBE_IP} \
             --set externalURL="${HARBOR_URL}"
 
           HARBOR_USERNAME=admin
-          HARBOR_PASSWORD=$(kubectl get secret -n harbor harbor-core-envvars -o jsonpath='{.data.HARBOR_ADMIN_PASSWORD}' | base64 -d)
+          HARBOR_PASSWORD=$(kubectl get secret -n harbor harbor-core -o jsonpath='{.data.HARBOR_ADMIN_PASSWORD}' | base64 -d)
           echo "::add-mask::${HARBOR_PASSWORD}"
 
           echo "url=${HARBOR_URL}" >> "$GITHUB_OUTPUT"
