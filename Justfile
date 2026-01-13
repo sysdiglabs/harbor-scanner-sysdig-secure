@@ -6,7 +6,7 @@ default:
 test:
 	ginkgo --randomize-all --randomize-suites --fail-on-pending -trace -race --show-node-events -r
 
-bump:
+update:
 	nix flake update
 	nix develop --command go get -u -t -v ./...
 	nix develop --command go mod tidy

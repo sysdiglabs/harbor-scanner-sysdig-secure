@@ -69,7 +69,7 @@ var _ = Describe("InlineAdapter", func() {
 		log.SetOutput(GinkgoWriter)
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
-		k8sClient = fake.NewSimpleClientset()
+		k8sClient = fake.NewClientset()
 		adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", true, log.StandardLogger())
 	})
 
@@ -89,6 +89,10 @@ var _ = Describe("InlineAdapter", func() {
 			Expect(err).To(Succeed())
 
 			result, _ := k8sClient.BatchV1().Jobs(namespace).Get(context.Background(), resourceName, metav1.GetOptions{})
+
+			// Clear fields auto-populated by the fake client
+			result.TypeMeta = metav1.TypeMeta{}
+			result.ManagedFields = nil
 
 			Expect(result).To(Equal(job()))
 		})
