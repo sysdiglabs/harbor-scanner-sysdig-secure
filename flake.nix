@@ -37,16 +37,17 @@
                 go
                 gofumpt
                 golangci-lint
+                gopls
                 govulncheck
+                harbor-cli
                 just
+                kubectl
+                kubernetes-helm
+                minikube
                 pre-commit
                 sd
-                trivy
-                minikube
-                kubernetes-helm
-                kubectl
                 skopeo
-                harbor-cli
+                trivy
               ];
 
               inputsFrom = [
@@ -58,7 +59,7 @@
               '';
             };
 
-          formatter = pkgs.nixfmt-rfc-style;
+          formatter = pkgs.nixfmt-tree;
         }
       );
     in
