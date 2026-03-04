@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
+	"time"
 
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 
 	"github.com/sysdiglabs/harbor-scanner-sysdig-secure/pkg/harbor"
@@ -36,7 +35,7 @@ func NewAPIHandler(adapter scanner.Adapter) http.Handler {
 	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(handler.scan)
 	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
 
-	return handlers.LoggingHandler(os.Stdout, router)
+	return loggingMiddleware(router)
 }
 
 func health(res http.ResponseWriter, _ *http.Request) {
@@ -125,6 +124,38 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	slog.Debug("vulnerability report", "report", string(jsonData))
 
 	_ = json.NewEncoder(res).Encode(vulnerabilityReport)
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+	size   int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
+}
+
+func (r *statusRecorder) Write(b []byte) (int, error) {
+	n, err := r.ResponseWriter.Write(b)
+	r.size += n
+	return n, err
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		start := time.Now()
+		next.ServeHTTP(rec, r)
+		slog.Info("http request",
+			"method", r.Method,
+			"path", r.RequestURI,
+			"status", rec.status,
+			"size", rec.size,
+			"duration", time.Since(start),
+		)
+	})
 }
 
 func errorResponseFromError(err error) harbor.ErrorResponse {
