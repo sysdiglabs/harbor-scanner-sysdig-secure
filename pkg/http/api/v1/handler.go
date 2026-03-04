@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
+	"log/slog"
 	"net/http"
-	"time"
+	"os"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -21,19 +21,11 @@ const (
 
 type requestHandler struct {
 	adapter scanner.Adapter
-	logger  Logger
 }
 
-type Logger interface {
-	Writer() *io.PipeWriter
-	Error(args ...interface{})
-	Errorf(format string, args ...interface{})
-}
-
-func NewAPIHandler(adapter scanner.Adapter, logger Logger) http.Handler {
+func NewAPIHandler(adapter scanner.Adapter) http.Handler {
 	handler := requestHandler{
 		adapter: adapter,
-		logger:  logger,
 	}
 
 	router := mux.NewRouter()
@@ -44,7 +36,7 @@ func NewAPIHandler(adapter scanner.Adapter, logger Logger) http.Handler {
 	apiV1Router.Methods(http.MethodPost).Path("/scan").HandlerFunc(handler.scan)
 	apiV1Router.Methods(http.MethodGet).Path("/scan/{scan_request_id}/report").HandlerFunc(handler.getReport)
 
-	return handlers.LoggingHandler(logger.Writer(), router)
+	return handlers.LoggingHandler(os.Stdout, router)
 }
 
 func health(res http.ResponseWriter, _ *http.Request) {
@@ -54,7 +46,7 @@ func health(res http.ResponseWriter, _ *http.Request) {
 func (h *requestHandler) metadata(res http.ResponseWriter, req *http.Request) {
 	metadata, err := h.adapter.GetMetadata()
 	if err != nil {
-		h.logRequestError(req, err)
+		slog.Error("request error", "method", req.Method, "uri", req.RequestURI, "error", err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusInternalServerError)
 
@@ -74,7 +66,7 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 	var scanRequest harbor.ScanRequest
 	err := json.NewDecoder(req.Body).Decode(&scanRequest)
 	if err != nil {
-		h.logRequestError(req, err)
+		slog.Error("request error", "method", req.Method, "uri", req.RequestURI, "error", err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusBadRequest)
 		if err := json.NewEncoder(res).Encode(errorResponseFromError(fmt.Errorf("error parsing scan request: %s", err.Error()))); err != nil {
@@ -85,7 +77,7 @@ func (h *requestHandler) scan(res http.ResponseWriter, req *http.Request) {
 
 	scanResponse, err := h.adapter.Scan(scanRequest)
 	if err != nil {
-		h.logRequestError(req, err)
+		slog.Error("request error", "method", req.Method, "uri", req.RequestURI, "error", err)
 		res.Header().Set("Content-Type", harbor.ScanAdapterErrorMimeType)
 		res.WriteHeader(http.StatusInternalServerError)
 		if err := json.NewEncoder(res).Encode(errorResponseFromError(err)); err != nil {
@@ -106,7 +98,7 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 
 	vulnerabilityReport, err := h.adapter.GetVulnerabilityReport(harbor.ScanRequestID(vars["scan_request_id"]))
 	if err != nil {
-		h.logRequestError(req, err)
+		slog.Error("request error", "method", req.Method, "uri", req.RequestURI, "error", err)
 		switch {
 		case errors.Is(err, scanner.ErrScanRequestIDNotFound):
 			res.WriteHeader(http.StatusNotFound)
@@ -126,23 +118,13 @@ func (h *requestHandler) getReport(res http.ResponseWriter, req *http.Request) {
 	res.Header().Set("Content-Type", harbor.ScanReportMimeType)
 	jsonData, err := json.Marshal(vulnerabilityReport)
 	if err != nil {
-		fmt.Println("Error marshalling to JSON:", err)
+		slog.Error("error marshalling vulnerability report to JSON", "error", err)
 		return
 	}
 
-	fmt.Printf("%s\n", jsonData)
+	slog.Debug("vulnerability report", "report", string(jsonData))
 
 	_ = json.NewEncoder(res).Encode(vulnerabilityReport)
-}
-
-func (h *requestHandler) logRequestError(req *http.Request, err error) {
-	ts := time.Now()
-	h.logger.Errorf("[%s] \"%s %s %s\" request ERROR: %s",
-		ts.Format("02/Jan/2006:15:04:05 -0700"),
-		req.Method,
-		req.RequestURI,
-		req.Proto,
-		err)
 }
 
 func errorResponseFromError(err error) harbor.ErrorResponse {

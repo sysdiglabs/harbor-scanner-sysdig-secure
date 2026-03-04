@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
-
-	log "github.com/sirupsen/logrus"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -21,9 +20,11 @@ import (
 )
 
 func main() {
-	if err := configure(); err != nil {
-		fmt.Printf("%s \n\n", err)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug})))
 
+	if err := configure(); err != nil {
+		slog.Error("configuration error", "error", err)
+		fmt.Println()
 		pflag.Usage()
 		os.Exit(1)
 	}
@@ -31,20 +32,21 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	log.SetOutput(os.Stdout)
-	log.SetLevel(log.TraceLevel)
-	log.Info("Starting harbor-scanner-sysdig-secure")
+	slog.Info("starting harbor-scanner-sysdig-secure")
 
 	adapter := getAdapter()
 	if viper.GetBool("async_mode") {
-		log.Info("Async-Mode enabled")
-		adapter = scanner.NewAsyncAdapter(ctx, adapter, log.StandardLogger(), scanner.DefaultAsyncAdapterRefreshRate)
+		slog.Info("async mode enabled")
+		adapter = scanner.NewAsyncAdapter(ctx, adapter, scanner.DefaultAsyncAdapterRefreshRate)
 	}
 
-	apiHandler := v1.NewAPIHandler(adapter, log.StandardLogger())
+	apiHandler := v1.NewAPIHandler(adapter)
 	apiServer := api.NewServer(apiHandler)
 
-	log.Fatal(apiServer.ListenAndServe())
+	if err := apiServer.ListenAndServe(); err != nil {
+		slog.Error("server error", "error", err)
+		os.Exit(1)
+	}
 }
 
 func configure() error {
@@ -79,15 +81,17 @@ func getAdapter() scanner.Adapter {
 	client := secure.NewClient(viper.GetString("secure_api_token"), viper.GetString("secure_url"), viper.GetBool("verify_ssl"))
 
 	if viper.GetBool("cli_scanning") {
-		log.Info("Using cli-scanner adapter")
+		slog.Info("using cli-scanner adapter")
 		config, err := rest.InClusterConfig()
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("failed to get in-cluster config", "error", err)
+			os.Exit(1)
 		}
 
 		clientset, err := kubernetes.NewForConfig(config)
 		if err != nil {
-			log.Fatal(err)
+			slog.Error("failed to create kubernetes client", "error", err)
+			os.Exit(1)
 		}
 
 		return scanner.NewInlineAdapter(
@@ -97,10 +101,10 @@ func getAdapter() scanner.Adapter {
 			viper.GetString("namespace_name"),
 			viper.GetString("secret_name"),
 			viper.GetString("cli_scanning_extra_params"),
-			viper.GetBool("verify_ssl"),
-			log.StandardLogger())
+			viper.GetBool("verify_ssl"))
 	}
 
-	log.Fatal("Please specify the cli-scanner (--cli_scanning) command line parameter, backend scanning no longer supported")
+	slog.Error("please specify the cli-scanner (--cli_scanning) command line parameter, backend scanning no longer supported")
+	os.Exit(1)
 	return nil
 }

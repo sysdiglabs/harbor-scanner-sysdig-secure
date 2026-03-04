@@ -3,6 +3,7 @@ package scanner
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -19,8 +20,7 @@ var _ Adapter = &AsyncAdapter{}
 type AsyncAdapter struct {
 	consumptionChan     chan harbor.ScanRequestID // channel where complete consumption of a report will be published, so it can be safely deleted from the results cache
 	internalRefreshRate time.Duration
-	lock                sync.RWMutex // mutex to sync access to the internal results map
-	log                 Logger
+	lock                sync.RWMutex              // mutex to sync access to the internal results map
 	requestsChan        chan harbor.ScanRequestID // channel where new requests about reports will be published
 	repliesChan         chan *asyncReportReply    // channel where replies about retrieval of reports will be published
 	results             map[harbor.ScanRequestID]*asyncReportReply
@@ -34,11 +34,10 @@ type asyncReportReply struct {
 	err    error
 }
 
-func NewAsyncAdapter(ctx context.Context, toWrap Adapter, logger Logger, refreshRate time.Duration) *AsyncAdapter {
+func NewAsyncAdapter(ctx context.Context, toWrap Adapter, refreshRate time.Duration) *AsyncAdapter {
 	adapter := &AsyncAdapter{
 		internalRefreshRate: refreshRate,
 		lock:                sync.RWMutex{},
-		log:                 logger,
 		requestsChan:        make(chan harbor.ScanRequestID),
 		repliesChan:         make(chan *asyncReportReply),
 		consumptionChan:     make(chan harbor.ScanRequestID),
@@ -89,11 +88,11 @@ func (a *AsyncAdapter) awaitReportAvailability(scanID harbor.ScanRequestID) {
 	for {
 		select {
 		case <-a.stopChan:
-			a.log.Debugf("Stopping async task of '%s'", scanID)
+			slog.Debug("stopping async task", "scan_id", scanID)
 			ticker.Stop()
 			return
 		case <-ticker.C:
-			a.log.Infof("Checking status of report '%s'", scanID)
+			slog.Info("checking report status", "scan_id", scanID)
 			report, err := a.wrapped.GetVulnerabilityReport(scanID)
 			if !errors.Is(err, ErrVulnerabilityReportNotReady) {
 				ticker.Stop()
@@ -106,32 +105,32 @@ func (a *AsyncAdapter) awaitReportAvailability(scanID harbor.ScanRequestID) {
 
 func (a *AsyncAdapter) listen(ctx context.Context) {
 	go func(ctx context.Context) {
-		a.log.Infof("Start listening for async updates")
+		slog.Info("start listening for async updates")
 		for {
 			select {
 			case <-ctx.Done():
-				a.log.Infof("Stop listening for updates: sending signal to stop background tasks")
+				slog.Info("stop listening for updates: sending signal to stop background tasks")
 				a.stopChan <- struct{}{}
 				return
 			case id := <-a.consumptionChan:
-				a.log.Debugf("Received consumption for report '%s', deleting it from cache", id)
+				slog.Debug("received consumption for report, deleting from cache", "scan_id", id)
 				a.lock.Lock()
 				delete(a.results, id)
 				a.lock.Unlock()
-				a.log.Debugf("report '%s' deleted from cache", id)
+				slog.Debug("report deleted from cache", "scan_id", id)
 			case id := <-a.requestsChan:
-				a.log.Debugf("Received new request for report '%s', adding it to cache", id)
+				slog.Debug("received new request for report, adding to cache", "scan_id", id)
 				a.lock.Lock()
 				a.results[id] = nil
 				a.lock.Unlock()
-				a.log.Debugf("Report '%s' added to cache", id)
+				slog.Debug("report added to cache", "scan_id", id)
 			case reply := <-a.repliesChan:
 				if reply != nil {
-					a.log.Infof("Report '%s' completed, updating cache", reply.scanID)
+					slog.Info("report completed, updating cache", "scan_id", reply.scanID)
 					a.lock.Lock()
 					a.results[reply.scanID] = reply
 					a.lock.Unlock()
-					a.log.Debugf("Report '%s' updated in cache", reply.scanID)
+					slog.Debug("report updated in cache", "scan_id", reply.scanID)
 				}
 			}
 		}
