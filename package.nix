@@ -1,8 +1,8 @@
 { buildGoModule }:
 buildGoModule {
   pname = "harbor-scanner-sysdig-secure";
-  version = "0.8.3";
-  vendorHash = "sha256-AsYqOGGrM4M5TYT0ZN7As6L/QbiEO7QobwKUthq1n5g=";
+  version = "0.8.4";
+  vendorHash = "sha256-wCvlsCGJjgo/ZJrvlJ/cg5KSnz05fjYi6cwCW/Opn/4=";
   src = ./.;
   subPackages = [
     "cmd/harbor-scanner-sysdig-secure"
