@@ -95,7 +95,7 @@ jobs:
             --set image.pullPolicy=Never \
             --set sysdig.secure.apiToken="$SECURE_API_TOKEN" \
             --set sysdig.secure.url="$SECURE_URL" \
-            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:1.22.6"
+            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:1.25.1"
 
       - name: Wait for Harbor to be ready
         run: |
