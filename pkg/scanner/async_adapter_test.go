@@ -3,12 +3,12 @@ package scanner
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	log "github.com/sirupsen/logrus"
 
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
@@ -29,12 +29,12 @@ var _ = Describe("Async-Adapter", func() {
 	)
 
 	BeforeEach(func() {
-		log.SetOutput(GinkgoWriter)
+		slog.SetDefault(slog.New(slog.NewTextHandler(GinkgoWriter, &slog.HandlerOptions{Level: slog.LevelDebug})))
 		ctx := context.TODO()
 		mocksController = gomock.NewController(GinkgoT())
 		wrappedAdapter = scannermocks.NewMockAdapter(mocksController)
 		ctx, ctxCancelFunc = context.WithCancel(ctx)
-		adapter = NewAsyncAdapter(ctx, wrappedAdapter, log.StandardLogger(), asyncAdapterRefreshRate)
+		adapter = NewAsyncAdapter(ctx, wrappedAdapter, asyncAdapterRefreshRate)
 	})
 
 	AfterEach(func() {

@@ -2,12 +2,12 @@ package scanner
 
 import (
 	"context"
+	"log/slog"
 	"os"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	log "github.com/sirupsen/logrus"
 
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -66,11 +66,11 @@ var _ = Describe("InlineAdapter", func() {
 	)
 
 	BeforeEach(func() {
-		log.SetOutput(GinkgoWriter)
+		slog.SetDefault(slog.New(slog.NewTextHandler(GinkgoWriter, &slog.HandlerOptions{Level: slog.LevelDebug})))
 		controller = gomock.NewController(GinkgoT())
 		client = mocks.NewMockClient(controller)
 		k8sClient = fake.NewClientset()
-		adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", true, log.StandardLogger())
+		adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", true)
 	})
 
 	AfterEach(func() {
@@ -121,7 +121,7 @@ var _ = Describe("InlineAdapter", func() {
 		})
 
 		It("adds --skiptlsverify in insecure", func() {
-			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", false, log.StandardLogger())
+			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "", false)
 
 			_, err := adapter.Scan(scanRequest())
 			Expect(err).To(Succeed())
@@ -132,7 +132,7 @@ var _ = Describe("InlineAdapter", func() {
 		})
 
 		It("adds extra parameters", func() {
-			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "--foo --bar", false, log.StandardLogger())
+			adapter = NewInlineAdapter(client, k8sClient, secureURL, namespace, secret, "--foo --bar", false)
 
 			_, err := adapter.Scan(scanRequest())
 			Expect(err).To(Succeed())

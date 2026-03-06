@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"strings"
 	"time"
@@ -19,7 +20,6 @@ type BaseAdapter struct {
 
 	scanner                *harbor.Scanner
 	scannerAdapterMetadata *harbor.ScannerAdapterMetadata
-	logger                 Logger
 }
 
 func (b *BaseAdapter) getScanner() *harbor.Scanner {
@@ -89,7 +89,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 		}
 		vulnJSON, _ := json.MarshalIndent(vulnerabilityItem, "", "    ")
 		// Echoing out the payload we are sending to Harbor
-		b.logger.Debugf("ToHarborVulnerabilityReport:: %s\n", string(vulnJSON))
+		slog.Debug("vulnerability item", "item", string(vulnJSON))
 	}
 
 	scanResponse, _ := b.secureClient.GetImage(shaDigest)
@@ -121,12 +121,12 @@ func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secur
 	result := make(map[string]string)
 
 	for idx, vulnerability := range vulnerabilities {
-		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Processing %d/%d", idx, len(vulnerabilities)-1)
+		slog.Debug("processing vulnerability description", "index", idx, "total", len(vulnerabilities)-1)
 		vulnerabilities[idx].URL = fmt.Sprintf("%s/secure/#/vulnerabilities/results/%s/overview", os.Getenv("SECURE_URL"), vulnerability.ResultId)
 		result[vulnerability.Vuln] = fmt.Sprintf("Disclosure Date: '%s', Exploitable: '%v' ", vulnerability.DisclosureDate, vulnerability.Exploitable)
-		b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: %s, URL: '%s'", result[vulnerability.Vuln], vulnerabilities[idx].URL)
+		slog.Debug("vulnerability description", "vuln", vulnerability.Vuln, "description", result[vulnerability.Vuln], "url", vulnerabilities[idx].URL)
 	}
-	b.logger.Debugf("getVulnerabilitiesDescriptionFrom:: Finished getting descriptions")
+	slog.Debug("finished getting vulnerability descriptions")
 	return result, nil
 }
 

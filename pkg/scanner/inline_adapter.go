@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -31,7 +32,6 @@ type inlineAdapter struct {
 	verifySSL   bool
 	jobTTL      int32
 	extraParams string
-	logger      Logger
 }
 
 type podResults struct {
@@ -39,21 +39,9 @@ type podResults struct {
 	ExitCode int
 }
 
-type Logger interface {
-	Writer() *io.PipeWriter
-	Debug(args ...interface{})
-	Debugf(format string, args ...interface{})
-	Info(args ...interface{})
-	Infof(format string, args ...interface{})
-	Warn(args ...interface{})
-	Warnf(format string, args ...interface{})
-	Error(args ...interface{})
-	Errorf(format string, args ...interface{})
-}
-
-func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL, namespace, secret, extraParams string, verifySSL bool, logger Logger) Adapter {
+func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface, secureURL, namespace, secret, extraParams string, verifySSL bool) Adapter {
 	return &inlineAdapter{
-		BaseAdapter: BaseAdapter{secureClient: secureClient, logger: logger},
+		BaseAdapter: BaseAdapter{secureClient: secureClient},
 		k8sClient:   k8sClient,
 		secureURL:   secureURL,
 		namespace:   namespace,
@@ -61,7 +49,6 @@ func NewInlineAdapter(secureClient secure.Client, k8sClient kubernetes.Interface
 		verifySSL:   verifySSL,
 		jobTTL:      jobDefaultTTL,
 		extraParams: extraParams,
-		logger:      logger,
 	}
 }
 
@@ -78,7 +65,7 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 	name := jobName(req.Artifact.Repository, req.Artifact.Digest)
 	job := i.buildJob(name, req)
 
-	i.logger.Infof("Creating job %s for %s", name, getImageFrom(req))
+	slog.Info("creating job", "name", name, "image", getImageFrom(req))
 	_, err := i.k8sClient.BatchV1().Jobs(i.namespace).Create(
 		context.Background(),
 		job,
@@ -88,7 +75,7 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 			return err
 		}
 
-		i.logger.Infof("Job %s already exists", name)
+		slog.Info("job already exists", "name", name)
 	}
 
 	return nil
@@ -152,16 +139,16 @@ func (i *inlineAdapter) buildJob(name string, req harbor.ScanRequest) *batchv1.J
 	k8sDeployment, err := i.k8sClient.AppsV1().Deployments(deploymentName).Get(context.TODO(), namespace, metav1.GetOptions{})
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			i.logger.Debugf("Deployment %s in namespace %s not found\n", deploymentName, namespace)
+			slog.Debug("deployment not found", "deployment", deploymentName, "namespace", namespace)
 		}
 	} else {
 		podSecurityContext = k8sDeployment.Spec.Template.Spec.SecurityContext
 		podTemplate := k8sDeployment.Spec.Template
 		if len(podTemplate.Spec.Containers) > 0 && podTemplate.Spec.Containers[0].SecurityContext != nil {
 			containerSecurityContext = podTemplate.Spec.Containers[0].SecurityContext
-			i.logger.Debugf("Security context for container %s: %+v\n", podTemplate.Spec.Containers[0].Name, containerSecurityContext)
+			slog.Debug("security context found", "container", podTemplate.Spec.Containers[0].Name, "security_context", containerSecurityContext)
 		} else {
-			i.logger.Debug("No security context found for the first container")
+			slog.Debug("no security context found for the first container")
 		}
 	}
 
@@ -234,27 +221,27 @@ func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequest
 	}
 
 	if job.Status.Active != 0 {
-		i.logger.Infof("Scan for %s/%s still in progress in job %s", repository, shaDigest, name)
+		slog.Info("scan still in progress", "repository", repository, "digest", shaDigest, "job", name)
 		return harbor.VulnerabilityReport{}, ErrVulnerabilityReportNotReady
 	}
 
 	defer i.cleanupJob(name)
 
-	i.logger.Infof("Scan for %s/%s finished, collecting results from job %s", repository, shaDigest, name)
+	slog.Info("scan finished, collecting results", "repository", repository, "digest", shaDigest, "job", name)
 	podResults, err := i.collectPodResults(job)
 	if err != nil {
-		i.logger.Errorf("Error collecting inline scanner results for %s/%s:%s", repository, shaDigest, err)
+		slog.Error("error collecting inline scanner results", "repository", repository, "digest", shaDigest, "error", err)
 		return harbor.VulnerabilityReport{}, ErrInlineScanError
 	}
 
 	if podResults.ExitCode != 0 && podResults.ExitCode != 1 {
-		i.logger.Errorf("Error executing inline scanner for %s/%s:%s", repository, shaDigest, string(podResults.LogBytes))
+		slog.Error("error executing inline scanner", "repository", repository, "digest", shaDigest, "logs", string(podResults.LogBytes))
 		return harbor.VulnerabilityReport{}, ErrInlineScanError
 	}
 
 	vulnerabilityReport, err := i.secureClient.GetVulnerabilities(shaDigest)
 	if err != nil {
-		i.logger.Errorf("Error retrieving scan results from backend for %s/%s", repository, shaDigest)
+		slog.Error("error retrieving scan results from backend", "repository", repository, "digest", shaDigest)
 		return harbor.VulnerabilityReport{}, err
 	}
 
@@ -270,7 +257,7 @@ func (i *inlineAdapter) cleanupJob(name string) {
 			PropagationPolicy: &propagationPolicy,
 		})
 	if err != nil {
-		i.logger.Errorf("Error deleting job %s: %s", name, err)
+		slog.Error("error deleting job", "name", name, "error", err)
 	}
 }
 

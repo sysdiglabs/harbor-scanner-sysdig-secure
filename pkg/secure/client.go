@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"math"
 	"net/http"
 	"net/url"
@@ -85,13 +86,13 @@ func (s *client) doRequest(method string, url string, payload []byte) (*http.Res
 		} else {
 			return nil, emptyBody, fmt.Errorf("response body is nil")
 		}
-		fmt.Printf("doRequest:: Got '%d'\n", response.StatusCode)
+		slog.Warn("doRequest: rate limited", "status_code", response.StatusCode)
 		backoff := time.Duration(int64(math.Pow(2, float64(attempt)))) * baseDelay
 
 		time.Sleep(backoff)
-		fmt.Printf("doRequest sleeping for '%d'\n", backoff)
+		slog.Warn("doRequest: retrying after backoff", "backoff", backoff)
 	}
-	fmt.Printf("Out of retries, exiting...\n")
+	slog.Error("doRequest: out of retries")
 	return nil, emptyBody, fmt.Errorf("too many requests, all retries failed")
 }
 
