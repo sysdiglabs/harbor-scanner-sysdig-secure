@@ -95,18 +95,16 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	scanResponse, _ := b.secureClient.GetImage(shaDigest)
 
 	for _, imageDetail := range scanResponse.Data {
-		parts := strings.Split(imageDetail.MainAssetName, "@")
-		repoWithTag := parts[0]
-		hash := parts[1]
-		firstSlash := strings.Index(repoWithTag, "/")
-		lastColon := strings.LastIndex(repoWithTag, ":")
-		repo := repoWithTag[firstSlash+1 : lastColon]
-		tag := repoWithTag[lastColon+1:]
+		repo, tag, digest, ok := parseMainAssetName(imageDetail.MainAssetName)
+		if !ok {
+			slog.Warn("invalid main asset name format", "main_asset_name", imageDetail.MainAssetName)
+			continue
+		}
 		if repo == repository {
 			result.GeneratedAt = imageDetail.CreatedAt
 			result.Artifact = &harbor.Artifact{
 				Repository: repo,
-				Digest:     hash,
+				Digest:     digest,
 				Tag:        tag,
 				MimeType:   harbor.DockerDistributionManifestMimeType,
 			}
@@ -115,6 +113,56 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	}
 
 	return result, nil
+}
+
+// parseMainAssetName splits a Sysdig MainAssetName into its repository, tag and
+// digest components. It accepts the reference forms produced by Sysdig Secure:
+//
+//	repo@sha256:...                        (digest-only, no tag)
+//	repo:tag@sha256:...                    (tagged)
+//	registry/repo[:tag]@sha256:...         (registry-prefixed)
+//	registry:port/repo[:tag]@sha256:...    (registry with port)
+//
+// The leading path segment is treated as a registry host and stripped only when
+// it looks like one (contains "." or ":", or equals "localhost"), following the
+// canonical Docker reference convention. Malformed values (missing digest,
+// missing name, or an empty tag such as "repo:@sha256:...") return ok=false so
+// the caller can log and skip them instead of panicking.
+func parseMainAssetName(mainAssetName string) (repo string, tag string, digest string, ok bool) {
+	parts := strings.SplitN(mainAssetName, "@", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", "", false
+	}
+
+	namePart := parts[0]
+	digest = parts[1]
+
+	lastSlash := strings.LastIndex(namePart, "/")
+	lastColon := strings.LastIndex(namePart, ":")
+	if lastColon > lastSlash {
+		tag = namePart[lastColon+1:]
+		namePart = namePart[:lastColon]
+		// A tag separator with an empty tag (e.g. "repo:@sha256:...") is not a
+		// valid reference; treat it as malformed so the caller logs and skips it.
+		if tag == "" {
+			return "", "", "", false
+		}
+	}
+
+	repo = namePart
+	firstSlash := strings.Index(namePart, "/")
+	if firstSlash != -1 {
+		firstPart := namePart[:firstSlash]
+		if strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":") || firstPart == "localhost" {
+			repo = namePart[firstSlash+1:]
+		}
+	}
+
+	if repo == "" {
+		return "", "", "", false
+	}
+
+	return repo, tag, digest, true
 }
 
 func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {

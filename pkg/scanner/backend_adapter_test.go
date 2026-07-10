@@ -111,7 +111,12 @@ func vulnerabilityReport() harbor.VulnerabilityReport {
 			Vendor:  "Sysdig",
 			Version: secure.BackendVersion,
 		},
-		Artifact: nil,
+		Artifact: &harbor.Artifact{
+			Repository: "sysdig/agent",
+			Digest:     imageDigest,
+			Tag:        "9.7",
+			MimeType:   harbor.DockerDistributionManifestMimeType,
+		},
 		Vulnerabilities: []harbor.VulnerabilityItem{
 			{
 				ID:          "CVE-2019-9948",
