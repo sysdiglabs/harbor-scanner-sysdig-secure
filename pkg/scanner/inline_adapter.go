@@ -69,7 +69,8 @@ func (i *inlineAdapter) createJobFrom(req harbor.ScanRequest) error {
 	_, err := i.k8sClient.BatchV1().Jobs(i.namespace).Create(
 		context.Background(),
 		job,
-		metav1.CreateOptions{})
+		metav1.CreateOptions{},
+	)
 	if err != nil {
 		if !k8serrors.IsAlreadyExists(err) {
 			return err
@@ -204,7 +205,8 @@ func appendLocalEnvVar(envVars []corev1.EnvVar, key string) []corev1.EnvVar {
 
 func jobName(repository string, shaDigest string) string {
 	return fmt.Sprintf(
-		"cli-scanner-%x", md5.Sum([]byte(fmt.Sprintf("%s|%s", repository, shaDigest))))
+		"cli-scanner-%x", md5.Sum([]byte(fmt.Sprintf("%s|%s", repository, shaDigest))),
+	)
 }
 
 func (i *inlineAdapter) GetVulnerabilityReport(scanResponseID harbor.ScanRequestID) (harbor.VulnerabilityReport, error) {
@@ -255,7 +257,8 @@ func (i *inlineAdapter) cleanupJob(name string) {
 		name,
 		metav1.DeleteOptions{
 			PropagationPolicy: &propagationPolicy,
-		})
+		},
+	)
 	if err != nil {
 		slog.Error("error deleting job", "name", name, "error", err)
 	}
@@ -266,7 +269,8 @@ func (i *inlineAdapter) collectPodResults(job *batchv1.Job) (*podResults, error)
 		context.Background(),
 		metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("controller-uid=%s", job.UID),
-		})
+		},
+	)
 	if err != nil {
 		return nil, err
 	}
