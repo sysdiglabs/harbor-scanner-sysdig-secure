@@ -129,6 +129,11 @@ func parseMainAssetName(mainAssetName string) (repo string, tag string, hash str
 	if lastColon > lastSlash {
 		tag = namePart[lastColon+1:]
 		namePart = namePart[:lastColon]
+		// A tag separator with an empty tag (e.g. "repo:@sha256:...") is not a
+		// valid reference; treat it as malformed so the caller logs and skips it.
+		if tag == "" {
+			return "", "", "", false
+		}
 	}
 
 	repo = namePart
