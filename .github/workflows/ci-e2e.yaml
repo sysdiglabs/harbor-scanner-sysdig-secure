@@ -129,11 +129,16 @@ jobs:
           HARBOR_USERNAME: ${{ steps.harbor.outputs.username }}
           HARBOR_PASSWORD: ${{ steps.harbor.outputs.password }}
         run: |
+          set -euo pipefail
           REPO="alpine"
           PROJECT="library"
           NEW_TAG="test"
 
+          # Newer skopeo rejects the runner's v1-format /etc/containers/registries.conf
+          # ("must be in v2 format but is in v1"). Point it at a minimal v2 config;
+          # the copy uses fully-qualified references, so no search registries are needed.
           skopeo \
+            --registries-conf <(echo 'unqualified-search-registries = []') \
             --policy <(echo '{"default":[{"type":"insecureAcceptAnything"}]}') \
             copy "docker://${REPO}:latest" \
             "docker://${MINIKUBE_IP}:30003/${PROJECT}/${REPO}:${NEW_TAG}" \
@@ -141,6 +146,10 @@ jobs:
             --dest-creds="${HARBOR_USERNAME}:${HARBOR_PASSWORD}"
 
           DIGEST=$(harbor artifact list "${PROJECT}"/"${REPO}" -o json | jq -r .Payload[].digest)
+          if [ -z "${DIGEST}" ] || [ "${DIGEST}" = "null" ]; then
+            echo "::error::Failed to resolve pushed artifact digest for ${PROJECT}/${REPO}"
+            exit 1
+          fi
 
           echo "repo=${REPO}" >> "$GITHUB_OUTPUT"
           echo "project=${PROJECT}" >> "$GITHUB_OUTPUT"
