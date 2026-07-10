@@ -95,7 +95,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	scanResponse, _ := b.secureClient.GetImage(shaDigest)
 
 	for _, imageDetail := range scanResponse.Data {
-		repo, tag, hash, ok := parseMainAssetName(imageDetail.MainAssetName)
+		repo, tag, digest, ok := parseMainAssetName(imageDetail.MainAssetName)
 		if !ok {
 			slog.Warn("invalid main asset name format", "main_asset_name", imageDetail.MainAssetName)
 			continue
@@ -104,7 +104,7 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 			result.GeneratedAt = imageDetail.CreatedAt
 			result.Artifact = &harbor.Artifact{
 				Repository: repo,
-				Digest:     hash,
+				Digest:     digest,
 				Tag:        tag,
 				MimeType:   harbor.DockerDistributionManifestMimeType,
 			}
@@ -115,14 +115,27 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	return result, nil
 }
 
-func parseMainAssetName(mainAssetName string) (repo string, tag string, hash string, ok bool) {
+// parseMainAssetName splits a Sysdig MainAssetName into its repository, tag and
+// digest components. It accepts the reference forms produced by Sysdig Secure:
+//
+//	repo@sha256:...                        (digest-only, no tag)
+//	repo:tag@sha256:...                    (tagged)
+//	registry/repo[:tag]@sha256:...         (registry-prefixed)
+//	registry:port/repo[:tag]@sha256:...    (registry with port)
+//
+// The leading path segment is treated as a registry host and stripped only when
+// it looks like one (contains "." or ":", or equals "localhost"), following the
+// canonical Docker reference convention. Malformed values (missing digest,
+// missing name, or an empty tag such as "repo:@sha256:...") return ok=false so
+// the caller can log and skip them instead of panicking.
+func parseMainAssetName(mainAssetName string) (repo string, tag string, digest string, ok bool) {
 	parts := strings.SplitN(mainAssetName, "@", 2)
 	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
 		return "", "", "", false
 	}
 
 	namePart := parts[0]
-	hash = parts[1]
+	digest = parts[1]
 
 	lastSlash := strings.LastIndex(namePart, "/")
 	lastColon := strings.LastIndex(namePart, ":")
@@ -149,7 +162,7 @@ func parseMainAssetName(mainAssetName string) (repo string, tag string, hash str
 		return "", "", "", false
 	}
 
-	return repo, tag, hash, true
+	return repo, tag, digest, true
 }
 
 func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
