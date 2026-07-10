@@ -101,7 +101,8 @@ func getAdapter() scanner.Adapter {
 			viper.GetString("namespace_name"),
 			viper.GetString("secret_name"),
 			viper.GetString("cli_scanning_extra_params"),
-			viper.GetBool("verify_ssl"))
+			viper.GetBool("verify_ssl"),
+		)
 	}
 
 	slog.Error("please specify the cli-scanner (--cli_scanning) command line parameter, backend scanning no longer supported")

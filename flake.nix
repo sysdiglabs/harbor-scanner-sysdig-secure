@@ -1,12 +1,18 @@
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # Pin harbor-cli: 0.0.23 (current unstable) breaks the e2e `harbor artifact
+    # scan start` call with HTTP 405. This revision provides harbor-cli 0.0.18,
+    # which the e2e suite is known to work against. Only harbor-cli is sourced
+    # from here; everything else tracks nixpkgs-unstable.
+    nixpkgs-harbor-cli.url = "github:NixOS/nixpkgs/0fd2db475afdde93c9e4b1625aafb8eb41b99807";
     flake-utils.url = "github:numtide/flake-utils";
   };
   outputs =
     {
       self,
       nixpkgs,
+      nixpkgs-harbor-cli,
       flake-utils,
     }:
     let
@@ -21,6 +27,7 @@
             config.allowUnfree = true;
             overlays = [ self.overlays.default ];
           };
+          harbor-cli = (import nixpkgs-harbor-cli { inherit system; }).harbor-cli;
         in
         {
           packages = with pkgs; {

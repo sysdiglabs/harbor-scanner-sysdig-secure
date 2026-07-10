@@ -352,7 +352,8 @@ func (s *client) GetFeeds() ([]Feed, error) {
 	response, body, err := s.doRequest(
 		http.MethodGet,
 		"/api/scanning/v1/system/feeds",
-		nil)
+		nil,
+	)
 	if err != nil {
 		return emptyResult, err
 	}
