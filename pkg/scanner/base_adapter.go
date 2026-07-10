@@ -95,13 +95,11 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	scanResponse, _ := b.secureClient.GetImage(shaDigest)
 
 	for _, imageDetail := range scanResponse.Data {
-		parts := strings.Split(imageDetail.MainAssetName, "@")
-		repoWithTag := parts[0]
-		hash := parts[1]
-		firstSlash := strings.Index(repoWithTag, "/")
-		lastColon := strings.LastIndex(repoWithTag, ":")
-		repo := repoWithTag[firstSlash+1 : lastColon]
-		tag := repoWithTag[lastColon+1:]
+		repo, tag, hash, ok := parseMainAssetName(imageDetail.MainAssetName)
+		if !ok {
+			slog.Warn("invalid main asset name format", "main_asset_name", imageDetail.MainAssetName)
+			continue
+		}
 		if repo == repository {
 			result.GeneratedAt = imageDetail.CreatedAt
 			result.Artifact = &harbor.Artifact{
@@ -115,6 +113,38 @@ func (b *BaseAdapter) ToHarborVulnerabilityReport(repository string, shaDigest s
 	}
 
 	return result, nil
+}
+
+func parseMainAssetName(mainAssetName string) (repo string, tag string, hash string, ok bool) {
+	parts := strings.SplitN(mainAssetName, "@", 2)
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return "", "", "", false
+	}
+
+	namePart := parts[0]
+	hash = parts[1]
+
+	lastSlash := strings.LastIndex(namePart, "/")
+	lastColon := strings.LastIndex(namePart, ":")
+	if lastColon > lastSlash {
+		tag = namePart[lastColon+1:]
+		namePart = namePart[:lastColon]
+	}
+
+	repo = namePart
+	firstSlash := strings.Index(namePart, "/")
+	if firstSlash != -1 {
+		firstPart := namePart[:firstSlash]
+		if strings.Contains(firstPart, ".") || strings.Contains(firstPart, ":") || firstPart == "localhost" {
+			repo = namePart[firstSlash+1:]
+		}
+	}
+
+	if repo == "" {
+		return "", "", "", false
+	}
+
+	return repo, tag, hash, true
 }
 
 func (b *BaseAdapter) getVulnerabilitiesDescriptionFrom(vulnerabilities []*secure.Vulnerability) (map[string]string, error) {
