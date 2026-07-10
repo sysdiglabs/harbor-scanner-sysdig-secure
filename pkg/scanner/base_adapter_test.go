@@ -53,6 +53,42 @@ var _ = Describe("parseMainAssetName", func() {
 		Expect(hash).To(Equal("sha256:abc"))
 	})
 
+	It("strips registry host with port and does not mistake the port for a tag", func() {
+		repo, tag, hash, ok := parseMainAssetName("localhost:5000/sysdig/agent@sha256:abc")
+
+		Expect(ok).To(BeTrue())
+		Expect(repo).To(Equal("sysdig/agent"))
+		Expect(tag).To(BeEmpty())
+		Expect(hash).To(Equal("sha256:abc"))
+	})
+
+	It("strips registry host with port while keeping the tag", func() {
+		repo, tag, hash, ok := parseMainAssetName("localhost:5000/sysdig/agent:9.7@sha256:abc")
+
+		Expect(ok).To(BeTrue())
+		Expect(repo).To(Equal("sysdig/agent"))
+		Expect(tag).To(Equal("9.7"))
+		Expect(hash).To(Equal("sha256:abc"))
+	})
+
+	It("parses a single-name official image without tag", func() {
+		repo, tag, hash, ok := parseMainAssetName("nginx@sha256:abc")
+
+		Expect(ok).To(BeTrue())
+		Expect(repo).To(Equal("nginx"))
+		Expect(tag).To(BeEmpty())
+		Expect(hash).To(Equal("sha256:abc"))
+	})
+
+	It("parses a single-name official image with tag", func() {
+		repo, tag, hash, ok := parseMainAssetName("nginx:latest@sha256:abc")
+
+		Expect(ok).To(BeTrue())
+		Expect(repo).To(Equal("nginx"))
+		Expect(tag).To(Equal("latest"))
+		Expect(hash).To(Equal("sha256:abc"))
+	})
+
 	It("returns not ok for malformed values", func() {
 		for _, tc := range []string{
 			"",
@@ -60,6 +96,7 @@ var _ = Describe("parseMainAssetName", func() {
 			"sysdig/agent@",
 			"sysdig/agent",
 			"sysdig/agent:1.0",
+			"sysdig/agent:@sha256:abc",
 		} {
 			repo, tag, hash, ok := parseMainAssetName(tc)
 			Expect(ok).To(BeFalse(), fmt.Sprintf("mainAssetName=%q", tc))
