@@ -28,6 +28,9 @@ jobs:
       - name: Install nix
         uses: DeterminateSystems/nix-installer-action@main
 
+      - name: Configure Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
       - name: Start Minikube (Docker driver)
         id: minikube
         run: |
