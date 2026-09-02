@@ -7,7 +7,7 @@ on:
       - master
 
 jobs:
-  e2e-test:
+  e2e-matrix:
     name: e2e (cli-scanner ${{ matrix.cli_scanner_version }})
     runs-on: ubuntu-latest
     strategy:
@@ -215,3 +215,19 @@ jobs:
         if: always()
         run: |
           minikube delete || true
+
+  # Stable, matrix-independent check for branch protection: matrix legs
+  # report as "e2e (cli-scanner <version>)", so a required check pinned to
+  # a specific version string would break every time the matrix changes.
+  e2e-test:
+    name: e2e-test
+    runs-on: ubuntu-latest
+    needs: e2e-matrix
+    if: always()
+    steps:
+      - name: Require all matrix legs to have passed
+        run: |
+          if [ "${{ needs.e2e-matrix.result }}" != "success" ]; then
+            echo "e2e-matrix result: ${{ needs.e2e-matrix.result }}"
+            exit 1
+          fi
