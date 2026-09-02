@@ -2,9 +2,6 @@
   dockerTools,
   harbor-adapter,
   cacert,
-  bash,
-  curl,
-  coreutils,
 }:
 dockerTools.buildLayeredImage {
   name = "sysdiglabs/harbor-scanner-sysdig-secure";

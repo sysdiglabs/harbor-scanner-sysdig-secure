@@ -44,7 +44,7 @@ jobs:
 
       - name: Run pre-commit
         run: |
-          pre-commit run -a
+          prek run -a
 
   build-and-test:
     name: Build and test

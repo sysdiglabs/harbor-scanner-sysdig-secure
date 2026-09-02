@@ -8,7 +8,14 @@ on:
 
 jobs:
   e2e-test:
+    name: e2e (cli-scanner ${{ matrix.cli_scanner_version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cli_scanner_version:
+          - "1.29.0" # newest-version-marker — DO NOT REMOVE; auto-updated by `just update-cli-scanner`
+          - "1.23.0" # oldest-version-marker — DO NOT REMOVE; auto-updated by `just update-oldest-cli-scanner`
     defaults:
       run:
         shell: nix develop --command bash -v {0}
@@ -95,7 +102,7 @@ jobs:
             --set image.pullPolicy=Never \
             --set sysdig.secure.apiToken="$SECURE_API_TOKEN" \
             --set sysdig.secure.url="$SECURE_URL" \
-            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:1.25.1"
+            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:${{ matrix.cli_scanner_version }}"
 
       - name: Wait for Harbor to be ready
         run: |
