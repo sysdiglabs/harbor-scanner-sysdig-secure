@@ -15,6 +15,7 @@ update: update-cli-scanner update-oldest-cli-scanner
 	nix flake update
 	nix develop --command go get -u -t -v ./...
 	nix develop --command go mod tidy
+	nix develop --command pinact run -u
 	nix develop --command just rehash-package-nix
 
 # (internal) Print the latest published sysdig-cli-scanner version
