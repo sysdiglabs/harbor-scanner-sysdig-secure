@@ -7,6 +7,7 @@
     # from here; everything else tracks nixpkgs-unstable.
     nixpkgs-harbor-cli.url = "github:NixOS/nixpkgs/0fd2db475afdde93c9e4b1625aafb8eb41b99807";
     flake-utils.url = "github:numtide/flake-utils";
+    go-overlay.url = "github:purpleclay/go-overlay";
   };
   outputs =
     {
@@ -14,18 +15,33 @@
       nixpkgs,
       nixpkgs-harbor-cli,
       flake-utils,
+      go-overlay,
     }:
     let
       overlays.default = final: prev: {
         harbor-adapter = prev.callPackage ./package.nix { };
       };
+      useLatestGoVersion = final: prev: {
+        go_latest = final.go-bin.latestStable;
+        # Use buildPackages so the Go toolchain runs on the build platform while
+        # still cross-compiling for the target (matches nixpkgs' buildGo*Module),
+        # otherwise cross builds pick the target-arch Go binary and fail to exec.
+        buildGoLatestModule = prev.buildGoLatestModule.override {
+          go = final.buildPackages.go-bin.latestStable;
+        };
+      };
+
       flake = flake-utils.lib.eachDefaultSystem (
         system:
         let
           pkgs = import nixpkgs {
             inherit system;
             config.allowUnfree = true;
-            overlays = [ self.overlays.default ];
+            overlays = [
+              self.overlays.default
+              go-overlay.overlays.default
+              useLatestGoVersion
+            ];
           };
           harbor-cli = (import nixpkgs-harbor-cli { inherit system; }).harbor-cli;
         in
@@ -40,8 +56,11 @@
             mkShell {
               packages = [
                 # Add here dependencies for the project.
+                coreutils
+                curl
                 ginkgo
-                go
+                gnused
+                go_latest
                 gofumpt
                 golangci-lint
                 gopls
@@ -51,7 +70,8 @@
                 kubectl
                 kubernetes-helm
                 minikube
-                pre-commit
+                pinact
+                prek
                 sd
                 skopeo
                 trivy
@@ -62,7 +82,7 @@
               ];
 
               shellHook = ''
-                pre-commit install
+                prek install
               '';
             };
 

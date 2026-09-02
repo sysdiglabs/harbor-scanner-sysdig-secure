@@ -79,14 +79,33 @@ Three GitHub Actions workflows run on PRs to `master`:
 
 **CI (`ci.yaml`)** — three parallel jobs:
 - **Lint**: `just lint`
-- **Pre-commit**: `pre-commit run -a` (fmt, lint, trivy vulnerability scan)
+- **Pre-commit**: `prek run -a` (fmt, lint, trivy vulnerability scan)
 - **Build and test**: `just test` (requires `SECURE_API_TOKEN` and `SECURE_URL` secrets)
 
-**E2E (`ci-e2e.yaml`)** — full integration test on Minikube:
+**E2E (`ci-e2e.yaml`)** — full integration test on Minikube, run as a matrix over the newest and oldest supported `sysdig-cli-scanner` versions:
 1. Starts Minikube, installs Harbor via Helm
 2. Builds the adapter Docker image with `nix build .#harbor-adapter-docker`
-3. Deploys the scanner adapter via the `sysdig/harbor-scanner-sysdig-secure` Helm chart
+3. Deploys the scanner adapter via the `sysdig/harbor-scanner-sysdig-secure` Helm chart, setting `cliScanning.image` to `quay.io/sysdig/sysdig-cli-scanner:<matrix version>`
 4. Pushes an Alpine image to Harbor, triggers a scan, and polls the vulnerability report API until completion (30 attempts, 10s intervals)
+
+## Scanner Version Support
+
+The `sysdig-cli-scanner` is supported for **1 year after release**. The e2e matrix (`cli_scanner_version` in `ci-e2e.yaml`) pins the newest default version and the oldest still-supported version for backward-compat coverage. Two `just` recipes keep these current:
+
+```bash
+# Print the oldest version still within the support window (probes binary Last-Modified)
+just oldest-cli-scanner
+
+# Substitute the oldest supported version wherever the oldest-version-marker is placed
+just update-oldest-cli-scanner
+
+# Bump the default version to the latest available (via newest-version-marker)
+just update-cli-scanner
+```
+
+- **Version markers:** the recipes find/replace via `newest-version-marker` / `oldest-version-marker` sentinels — trailing `#`/`//` comments in YAML/TS, HTML-comment spans in Markdown. Target files are discovered by `grep`, not hardcoded, so a new marker anywhere is picked up. **Do not remove these markers** or the recipes stop updating that spot.
+- The version number comes from `https://download.sysdig.com/scanning/sysdig-cli-scanner/latest_version.txt` (same semver as the `quay.io/sysdig/sysdig-cli-scanner` image tags).
+- Both recipes run as part of `just update`. The recipes require GNU `date`/`sed` and `curl`, provided by the `nix develop` devshell.
 
 **Release (`release.yaml`)** — triggers on `package.nix` changes pushed to `master`:
 - Extracts version from `package.nix`, compares with latest git tag

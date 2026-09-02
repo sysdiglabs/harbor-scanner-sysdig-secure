@@ -7,8 +7,15 @@ on:
       - master
 
 jobs:
-  e2e-test:
+  e2e-matrix:
+    name: e2e (cli-scanner ${{ matrix.cli_scanner_version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cli_scanner_version:
+          - "1.29.0" # newest-version-marker — DO NOT REMOVE; auto-updated by `just update-cli-scanner`
+          - "1.23.0" # oldest-version-marker — DO NOT REMOVE; auto-updated by `just update-oldest-cli-scanner`
     defaults:
       run:
         shell: nix develop --command bash -v {0}
@@ -16,10 +23,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install nix
-        uses: DeterminateSystems/nix-installer-action@main
+        uses: DeterminateSystems/nix-installer-action@ef8a148080ab6020fd15196c2084a2eea5ff2d25 # v22
+
+      - name: Configure Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@908b263ff629f4cc17666315b7fd3ec127c6244d # v14
 
       - name: Start Minikube (Docker driver)
         id: minikube
@@ -95,7 +105,7 @@ jobs:
             --set image.pullPolicy=Never \
             --set sysdig.secure.apiToken="$SECURE_API_TOKEN" \
             --set sysdig.secure.url="$SECURE_URL" \
-            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:1.25.1"
+            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:${{ matrix.cli_scanner_version }}"
 
       - name: Wait for Harbor to be ready
         run: |
@@ -205,3 +215,19 @@ jobs:
         if: always()
         run: |
           minikube delete || true
+
+  # Stable, matrix-independent check for branch protection: matrix legs
+  # report as "e2e (cli-scanner <version>)", so a required check pinned to
+  # a specific version string would break every time the matrix changes.
+  e2e-test:
+    name: e2e-test
+    runs-on: ubuntu-latest
+    needs: e2e-matrix
+    if: always()
+    steps:
+      - name: Require all matrix legs to have passed
+        run: |
+          if [ "${{ needs.e2e-matrix.result }}" != "success" ]; then
+            echo "e2e-matrix result: ${{ needs.e2e-matrix.result }}"
+            exit 1
+          fi
