@@ -8,7 +8,17 @@ on:
 
 jobs:
   e2e-test:
+    # Stable check names (newest/oldest) so required checks survive version bumps.
+    name: e2e-test (${{ matrix.scanner }} cli-scanner)
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - scanner: newest
+            version: "1.30.1" # newest-version-marker — DO NOT REMOVE; auto-updated by `just update-cli-scanner`
+          - scanner: oldest
+            version: "1.23.0" # oldest-version-marker — DO NOT REMOVE; auto-updated by `just update-oldest-cli-scanner`
     defaults:
       run:
         shell: nix develop --command bash -v {0}
@@ -84,6 +94,7 @@ jobs:
           TAG: ${{ steps.image_in_docker.outputs.tag }}
           SECURE_API_TOKEN: ${{ secrets.KUBELAB_SECURE_API_TOKEN }}
           SECURE_URL: ${{ secrets.SECURE_URL || 'https://secure.sysdig.com' }}
+          CLI_SCANNER_VERSION: ${{ matrix.version }}
         run: |
           helm install harbor-scanner-sysdig-secure sysdig/harbor-scanner-sysdig-secure \
             --wait \
@@ -95,7 +106,7 @@ jobs:
             --set image.pullPolicy=Never \
             --set sysdig.secure.apiToken="$SECURE_API_TOKEN" \
             --set sysdig.secure.url="$SECURE_URL" \
-            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:1.25.1"
+            --set cliScanning.image="quay.io/sysdig/sysdig-cli-scanner:${CLI_SCANNER_VERSION}"
 
       - name: Wait for Harbor to be ready
         run: |

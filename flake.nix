@@ -40,7 +40,12 @@
             mkShell {
               packages = [
                 # Add here dependencies for the project.
+                # coreutils/gnused/gnugrep: the justfile scanner recipes need GNU date/sed/grep.
+                coreutils
+                curl
                 ginkgo
+                gnugrep
+                gnused
                 go
                 gofumpt
                 golangci-lint
