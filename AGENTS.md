@@ -26,8 +26,14 @@ ginkgo -r ./pkg/http/api/v1/
 
 After changing Go dependencies:
 ```bash
-just update              # Update flake + go deps + rehash
+just update              # Update flake + go deps + rehash + cli-scanner versions
 just rehash-package-nix  # Only recalculate vendorHash in package.nix
+```
+
+Scanner versions used by the e2e matrix are rewritten on the lines tagged with `newest-version-marker` / `oldest-version-marker`:
+```bash
+just update-cli-scanner         # Latest sysdig-cli-scanner release
+just update-oldest-cli-scanner  # Oldest release still inside the 365-day support window
 ```
 
 ## Architecture
@@ -82,7 +88,7 @@ Three GitHub Actions workflows run on PRs to `master`:
 - **Pre-commit**: `pre-commit run -a` (fmt, lint, trivy vulnerability scan)
 - **Build and test**: `just test` (requires `SECURE_API_TOKEN` and `SECURE_URL` secrets)
 
-**E2E (`ci-e2e.yaml`)** — full integration test on Minikube:
+**E2E (`ci-e2e.yaml`)** — full integration test on Minikube, run as a matrix against the newest and the oldest supported `sysdig-cli-scanner` image:
 1. Starts Minikube, installs Harbor via Helm
 2. Builds the adapter Docker image with `nix build .#harbor-adapter-docker`
 3. Deploys the scanner adapter via the `sysdig/harbor-scanner-sysdig-secure` Helm chart
