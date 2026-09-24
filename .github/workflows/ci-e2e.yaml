@@ -7,8 +7,8 @@ on:
       - master
 
 jobs:
-  e2e-test:
-    # Stable check names (newest/oldest) so required checks survive version bumps.
+  e2e-test-matrix:
+    # Stable check names (newest/oldest) so they survive version bumps.
     name: e2e-test (${{ matrix.scanner }} cli-scanner)
     runs-on: ubuntu-latest
     strategy:
@@ -216,3 +216,22 @@ jobs:
         if: always()
         run: |
           minikube delete || true
+
+  # Single status check named `e2e-test` (the one required on master) that
+  # aggregates every entry of the matrix above.
+  e2e-test:
+    name: e2e-test
+    runs-on: ubuntu-latest
+    needs: [e2e-test-matrix]
+    if: always()
+    steps:
+      - name: Check e2e results
+        env:
+          RESULT: ${{ needs.e2e-test-matrix.result }}
+        run: |
+          if [ "$RESULT" = "success" ]; then
+            echo "All e2e tests passed"
+          else
+            echo "Some e2e tests did not pass (result: $RESULT)"
+            exit 1
+          fi
